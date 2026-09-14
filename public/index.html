@@ -572,8 +572,8 @@
       </div>
 
       <div class="header-badges">
-        <div class="pill" id="totalStreams">0 Channels</div>
-        <div class="pill" id="liveStreams">0 Live</div>
+                <div class="pill" id="totalStreams">0 Channels</div>
+        <div class="pill" id="liveStreams"><span class="pill-dot"></span>0 Live</div>
       </div>
     </div>
   </header>
@@ -771,8 +771,15 @@
       const grid = document.getElementById('grid');
       const totalLive = streams.filter(s => s.liveStats && s.liveStats.online).length;
       
-      document.getElementById('totalStreams').textContent = `${streams.length} Channel${streams.length !== 1 ? 's' : ''}`;
-      document.getElementById('liveStreams').textContent = `${totalLive} Live`;
+            document.getElementById('totalStreams').textContent = `${streams.length} Channel${streams.length !== 1 ? 's' : ''}`;
+      
+      const livePill = document.getElementById('liveStreams');
+      livePill.innerHTML = `<span class="pill-dot"></span>${totalLive} Live`;
+      if (totalLive > 0) {
+        livePill.classList.add('is-active');
+      } else {
+        livePill.classList.remove('is-active');
+      }
 
       if (!streams.length) {
         grid.innerHTML = `
@@ -970,6 +977,7 @@
   </script>
 </body>
 </html>
+
 
 
 
