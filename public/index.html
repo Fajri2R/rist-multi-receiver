@@ -699,8 +699,19 @@
         
         // Find best local LAN IP
         if (data.localIps && data.localIps.length) {
-          const nonDocker = data.localIps.find(n => !n.address.startsWith('172.') && !n.address.startsWith('10.'));
-          systemIps.localIp = nonDocker ? nonDocker.address : data.localIps[0].address;
+          // Prefer non-Docker bridges (172.16 - 172.31)
+          const isDocker = (addr) => {
+            const p = addr.split('.').map(Number);
+            return p[0] === 172 && p[1] >= 16 && p[1] <= 31;
+          };
+          const realLan = data.localIps.find(n => !isDocker(n.address));
+          systemIps.localIp = realLan ? realLan.address : data.localIps[0].address;
+
+          // If accessed via actual browser hostname that is not localhost, prefer it
+          const browserHost = window.location.hostname;
+          if (browserHost !== 'localhost' && browserHost !== '127.0.0.1' && !isDocker(browserHost)) {
+            systemIps.localIp = browserHost;
+          }
         }
         
         // Fallback to current browser URL if localIp is empty
@@ -985,5 +996,6 @@
   </script>
 </body>
 </html>
+
 
 

@@ -75,18 +75,30 @@ function fetchPublicIp() {
     });
 }
 
+function isDockerBridge(address) {
+    // Docker default bridge ranges: 172.17.0.0/12 (172.16 - 172.31)
+    const parts = address.split('.').map(Number);
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    // Docker compose internal networks also use 172.x
+    return false;
+}
+
 function getLocalIps() {
     const interfaces = os.networkInterfaces();
-    const ips = [];
+    const regular = [];
+    const docker  = [];
     for (const name of Object.keys(interfaces)) {
         for (const net of interfaces[name]) {
-            if (net.family === 'IPv4' && !net.internal) {
-                // Filter out standard docker internal bridges if host IPs exist
-                ips.push({ interface: name, address: net.address });
+            if (net.family !== 'IPv4' || net.internal) continue;
+            if (isDockerBridge(net.address)) {
+                docker.push({ interface: name, address: net.address });
+            } else {
+                regular.push({ interface: name, address: net.address });
             }
         }
     }
-    return ips;
+    // Real LAN IPs first, Docker bridges appended last
+    return [...regular, ...docker];
 }
 
 // REST API: System info (IP detection)
@@ -189,4 +201,5 @@ app.listen(PORT, '0.0.0.0', () => {
         if (ip) console.log(`[Manager] Detected Public IP: ${ip}`);
     });
 });
+
 
