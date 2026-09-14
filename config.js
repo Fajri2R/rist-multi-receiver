@@ -1,4 +1,4 @@
-module.exports = {
+﻿module.exports = {
     // Port ranges to allocate from
     receivePortStart: 2030,
     forwardPortStart: 5556,
@@ -11,3 +11,4 @@ module.exports = {
     rttMin: '70',
     rttMax: '1200'
 };
+

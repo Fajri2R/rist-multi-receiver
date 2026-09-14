@@ -1,11 +1,13 @@
-const { spawn } = require('child_process');
+﻿const { spawn } = require('child_process');
 const config = require('../config');
 const statsCollector = require('./statsCollector');
 
 const runningProcs = {};
 
 function buildReceiverCmd(stream) {
-    const listenUrl = `rist://@:${stream.receivePort}?rtt-min=${config.rttMin}&rtt-max=${config.rttMax}&username=${stream.username}&password=${stream.password}`;
+    // session-timeout=5000 (5s) gives Android time to re-auth when source port changes mid-handshake
+    // keepalive=1 ensures RTCP ping stays active even when bitrate drops to 0 temporarily on Android
+    const listenUrl = `rist://@:${stream.receivePort}?rtt-min=${config.rttMin}&rtt-max=${config.rttMax}&username=${stream.username}&password=${stream.password}&session-timeout=5000&keepalive-timeout=4000`;
     const outputUrl  = `udp://127.0.0.1:${stream.internalPort}`;
     const statsUrl   = `127.0.0.1:${stream.statsPort}`;
     return { cmd: 'ristreceiver', args: ['-v', '6', '-b', config.receiverBuffer, '-i', listenUrl, '-o', outputUrl, '-r', statsUrl, '-p', config.ristProfile] };
@@ -76,3 +78,4 @@ function stopStream(streamId) {
 }
 
 module.exports = { startStream, stopStream };
+
