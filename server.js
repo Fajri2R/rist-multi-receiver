@@ -24,6 +24,24 @@ if (fs.existsSync(apiKeyPath)) {
 }
 
 const app = express();
+
+// ===========================================
+// SECURITY: Trust Proxy & Hardened Headers
+// ===========================================
+// Only trust X-Forwarded-For from Nginx/Caddy on localhost / Docker bridge.
+// Public clients cannot spoof their IP to bypass rate limiting.
+app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
+
+// Harden HTTP response headers
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    next();
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -33,7 +51,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 const rateLimitCache = {};
 
 function getClientIp(req) {
-    let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    // req.ip is set by Express trust proxy — safe from header spoofing by public clients
+    let ip = req.ip || req.socket.remoteAddress || '127.0.0.1';
     if (typeof ip === 'string') {
         ip = ip.split(',')[0].trim();
         if (ip.startsWith('::ffff:')) ip = ip.replace('::ffff:', '');

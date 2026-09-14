@@ -128,6 +128,47 @@ docker compose restart
 
 Buka browser Anda di: `http://<IP_PUBLIK_VPS>:3000`
 
+
+### 6. Tuning Kernel UDP Buffer (Wajib untuk VPS & Bitrate Tinggi)
+Pada Linux VPS, ukuran *default receive buffer* sangat kecil (~212 KB). Jika streamer mengirim bitate tinggi (10-15 Mbps) dan terjadi gangguan sinyal 4G/5G, paket burst RIST bisa dibuang oleh Linux sebelum dibaca receiver.
+
+Perbesar buffer ke 25MB dengan cara berikut:
+```bash
+# Terapkan langsung ke kernel
+sudo sysctl -w net.core.rmem_max=26214400
+sudo sysctl -w net.core.rmem_default=26214400
+
+# Agar permanen setelah server direboot
+echo "net.core.rmem_max=26214400" | sudo tee -a /etc/sysctl.conf
+echo "net.core.rmem_default=26214400" | sudo tee -a /etc/sysctl.conf
+```
+
+### 7. Keamanan: Reverse Proxy HTTPS & Nginx (Sangat Direkomendasikan)
+Jangan mengakses `http://<IP_VPS>:3000` tanpa SSL, karena API Key Anda rentan di-sniff di jaringan Wi-Fi publik (Man-In-The-Middle attack).
+Aplikasi ini sudah mengaktifkan perlindungan **Brute-force Anti-Spoofing**, namun membutuhkan Nginx lokal agar mendapatkan sertifikat HTTPS Let's Encrypt secara otomatis.
+
+**Contoh `/etc/nginx/sites-available/rist`:**
+```nginx
+server {
+    listen 80;
+    server_name dashboard.domainanda.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+Pasang SSL gratis dengan perintah:
+```bash
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d dashboard.domainanda.com
+```
+
+
 ---
 
 ## 📺 Panduan Penggunaan URL
