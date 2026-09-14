@@ -667,7 +667,7 @@
         systemIps.publicIp = data.publicIp || '';
 
         // Check for injected Host IP (from Docker host.docker.internal or .env)
-        if (data.hostDockerIp && data.hostDockerIp !== '127.0.0.1') {
+        if (data.hostDockerIp && data.hostDockerIp !== '127.0.0.1' && !data.hostDockerIp.startsWith('192.168.65.')) {
           systemIps.localIp = data.hostDockerIp;
         } else {
           // Prefer non-Docker bridges (172.16 - 172.31)
@@ -706,7 +706,7 @@
         options.push({ value: systemIps.publicIp, label: `🌐 Public IP (${systemIps.publicIp})` });
       }
 
-      if (systemIps.localIp) {
+      if (systemIps.localIp && !systemIps.localIp.startsWith('192.168.65.')) {
         options.push({ value: systemIps.localIp, label: `🏠 LAN IP (${systemIps.localIp})` });
       }
 
@@ -987,6 +987,7 @@
   </script>
 </body>
 </html>
+
 
 
 

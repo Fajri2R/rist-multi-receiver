@@ -112,7 +112,8 @@ function resolveHostIp() {
         }
         // Try resolving host.docker.internal (supported by Docker Desktop Windows/Mac)
         dns.lookup('host.docker.internal', (err, address) => {
-            if (!err && address) {
+            // Filter out Docker Desktop virtual gateway (192.168.65.x)
+            if (!err && address && !address.startsWith('192.168.65.')) {
                 resolve(address);
             } else {
                 resolve(null);
@@ -222,6 +223,7 @@ app.listen(PORT, '0.0.0.0', () => {
         if (ip) console.log(`[Manager] Detected Public IP: ${ip}`);
     });
 });
+
 
 
 
