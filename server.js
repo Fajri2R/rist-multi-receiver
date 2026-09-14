@@ -103,15 +103,34 @@ function getLocalIps() {
     return [...regular, ...docker];
 }
 
+const dns = require('dns');
+
+function resolveHostIp() {
+    return new Promise((resolve) => {
+        if (process.env.HOST_IP) {
+            return resolve(process.env.HOST_IP);
+        }
+        // Try resolving host.docker.internal (supported by Docker Desktop Windows/Mac)
+        dns.lookup('host.docker.internal', (err, address) => {
+            if (!err && address) {
+                resolve(address);
+            } else {
+                resolve(null);
+            }
+        });
+    });
+}
+
 // REST API: System info (IP detection)
 app.get('/api/system-info', async (req, res) => {
     const publicIp = await fetchPublicIp();
     const localIps = getLocalIps();
-    // Also include client request remote IP / host header
+    const hostDockerIp = await resolveHostIp();
     const reqHost = req.headers.host ? req.headers.host.split(':')[0] : 'localhost';
     res.json({
         publicIp: publicIp || null,
         localIps,
+        hostDockerIp: hostDockerIp || null,
         requestHost: reqHost
     });
 });
@@ -203,6 +222,7 @@ app.listen(PORT, '0.0.0.0', () => {
         if (ip) console.log(`[Manager] Detected Public IP: ${ip}`);
     });
 });
+
 
 
 

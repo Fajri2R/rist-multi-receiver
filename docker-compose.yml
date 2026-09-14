@@ -3,6 +3,11 @@ services:
     build: .
     container_name: rist-multi-receiver
     restart: unless-stopped
+    environment:
+      # Set HOST_IP to your server LAN IP (e.g. 10.10.10.128) so the dashboard
+      # shows the correct LAN address instead of the Docker bridge 172.x.x.x
+      # Leave blank to auto-detect via host.docker.internal (Docker Desktop)
+      - HOST_IP=${HOST_IP:-}
     ports:
       # Management Web UI and NOALBS Stats API
       - "3000:3000/tcp"

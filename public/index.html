@@ -666,17 +666,27 @@
         const data = await res.json();
         systemIps.publicIp = data.publicIp || '';
 
-        // Prefer non-Docker bridges (172.16 - 172.31)
-        const isDocker = (addr) => {
-          const p = addr.split('.').map(Number);
-          return p[0] === 172 && p[1] >= 16 && p[1] <= 31;
-        };
-        const realLan = data.localIps.find(n => !isDocker(n.address));
-        systemIps.localIp = realLan ? realLan.address : data.localIps[0].address;
+        // Check for injected Host IP (from Docker host.docker.internal or .env)
+        if (data.hostDockerIp && data.hostDockerIp !== '127.0.0.1') {
+          systemIps.localIp = data.hostDockerIp;
+        } else {
+          // Prefer non-Docker bridges (172.16 - 172.31)
+          const isDocker = (addr) => {
+            const p = addr.split('.').map(Number);
+            return p[0] === 172 && p[1] >= 16 && p[1] <= 31;
+          };
+          const realLan = data.localIps.find(n => !isDocker(n.address));
+          systemIps.localIp = realLan ? realLan.address : data.localIps[0].address;
+        }
 
         // If accessed via actual browser hostname that is not localhost, prefer it
+        // This acts as the final overriding truth because if user can access the UI, that IP is 100% correct!
         const browserHost = window.location.hostname;
-        if (browserHost !== 'localhost' && browserHost !== '127.0.0.1' && !isDocker(browserHost)) {
+        const isDockerHost = (addr) => {
+            const p = addr.split('.').map(Number);
+            return p[0] === 172 && p[1] >= 16 && p[1] <= 31;
+        };
+        if (browserHost !== 'localhost' && browserHost !== '127.0.0.1' && !isDockerHost(browserHost)) {
           systemIps.localIp = browserHost;
         }
       } catch (err) {
@@ -977,6 +987,7 @@
   </script>
 </body>
 </html>
+
 
 
 
