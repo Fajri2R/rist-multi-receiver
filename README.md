@@ -34,17 +34,100 @@ Setiap channel mendapatkan satu set proses `ristreceiver` dan `ristsender` terpi
 
 ---
 
-## 🚀 Quick Start (Docker)
+## 💻 Panduan Instalasi Lokal (PC / Laptop Windows & Mac)
 
-1. Pastikan Anda telah menginstal **Docker** dan **Docker Compose**.
-2. Clone repository ini dan masuk ke direktorinya.
-3. Jalankan perintah berikut:
+Instalasi di PC lokal sangat cocok jika Anda ingin menerima feed kamera di jaringan Wi-Fi rumah yang sama atau PC lokal Anda memiliki IP Public Statis / Port Forwarding.
+
+### 1. Prasyarat
+- Pasang [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Pastikan Docker Desktop sudah berjalan/running).
+- Pasang [Git](https://git-scm.com/).
+
+### 2. Langkah Instalasi
+Buka Terminal / PowerShell / Command Prompt, lalu jalankan:
 
 ```bash
+# Clone repository
+git clone https://github.com/Fajri2R/rist-multi-receiver.git
+
+# Masuk ke direktori
+cd rist-multi-receiver
+
+# Build dan jalankan container
 docker compose up -d --build
 ```
 
-Buka **http://localhost:3000** (atau IP server Anda). Klik **Add Channel** untuk membuat konfigurasi stream pertama Anda.
+### 3. Akses Dashboard
+Buka browser dan buka:
+- Dari PC yang sama: `http://localhost:3000`
+- Dari HP / laptop lain di Wi-Fi yang sama: `http://<IP_LAN_KOMPUTER_ANDA>:3000` (misal: `http://192.168.1.50:3000`)
+
+---
+
+## ☁️ Panduan Instalasi di VPS (Ubuntu / Debian Linux)
+
+Sangat direkomendasikan untuk **IRL Streaming di luar ruangan** menggunakan koneksi seluler 4G/5G (Moblin/IRLBOX/Belabox) karena VPS memiliki IP Publik statis dan bandwidth *unmetered*.
+
+### 1. Siapkan VPS & Update Sistem
+Login ke VPS via SSH, lalu perbarui paket:
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y git curl ufw
+```
+
+### 2. Pasang Docker & Docker Compose
+Gunakan skrip instalasi resmi Docker:
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# Izinkan user saat ini menjalankan docker tanpa sudo (opsional)
+sudo usermod -aG docker $USER
+```
+
+### 3. Konfigurasi Firewall (PENTING!)
+Agar aliran stream RIST dan Dashboard dapat diakses, buka port-port berikut di firewall UFW:
+```bash
+# Buka Port SSH (agar tidak terkunci keluar)
+sudo ufw allow 22/tcp
+
+# Buka Web Dashboard UI & NOALBS API
+sudo ufw allow 3000/tcp
+
+# Buka Port Input RIST (Kamera / IRLBOX ke VPS)
+sudo ufw allow 2030:2050/udp
+
+# Buka Port Forward RIST (VPS ke OBS Studio)
+sudo ufw allow 5556:5576/udp
+
+# Aktifkan Firewall
+sudo ufw enable
+sudo ufw status
+```
+*(Catatan: Jika Anda menggunakan AWS EC2, Google Cloud, atau Oracle Cloud, pastikan Anda juga membuka port di atas pada Security Group / Firewall dashboard web penyedia VPS).*
+
+### 4. Clone & Jalankan RIST Multi-Receiver
+```bash
+# Unduh source code
+git clone https://github.com/Fajri2R/rist-multi-receiver.git
+cd rist-multi-receiver
+
+# Jalankan secara background
+docker compose up -d --build
+```
+
+### 5. Kelola Container di VPS
+```bash
+# Melihat log realtime
+docker compose logs -f
+
+# Menghentikan server
+docker compose down
+
+# Merestart server
+docker compose restart
+```
+
+Buka browser Anda di: `http://<IP_PUBLIK_VPS>:3000`
 
 ---
 
@@ -90,8 +173,6 @@ Masukkan konfigurasi berikut pada `config.json` NOALBS Anda:
 | 3000        | TCP      | Web Dashboard UI, REST API, & Endpoint NOALBS    |
 | 2030–2050   | UDP      | **RIST Input** (dari IRLBOX/Moblin ke Server)    |
 | 5556–5576   | UDP      | **RIST Output** (di-forward ke OBS Studio)       |
-
-Jika Anda menggunakan VPS/Server Cloud, pastikan Anda **membuka port-port di atas pada Firewall (UFW / AWS Security Group)**.
 
 ---
 
