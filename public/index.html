@@ -571,14 +571,33 @@
       } catch (e) { showToast('Failed to delete channel', 'danger'); }
     }
 
-    function copyText(text, btnElement) {
-      navigator.clipboard.writeText(text).then(() => {
+        function copyText(text, btnElement) {
+      const onSuccess = () => {
         const originalText = btnElement.textContent;
         btnElement.textContent = '✓ Copied';
         btnElement.classList.add('copied');
         showToast('URL copied to clipboard!', 'success');
         setTimeout(() => { btnElement.textContent = originalText; btnElement.classList.remove('copied'); }, 1500);
-      });
+      };
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(onSuccess).catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+
+      function fallbackCopy(textToCopy) {
+        const textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+        textArea.style.position = "fixed"; 
+        textArea.style.left = "-999999px"; 
+        textArea.style.top = "-999999px"; 
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try { document.execCommand('copy'); onSuccess(); } catch (err) { showToast('Failed to copy, copy manually.', 'danger'); }
+        textArea.remove();
+      }
     }
 
     function showToast(msg, type = 'info') {
@@ -607,3 +626,4 @@
   </script>
 </body>
 </html>
+
