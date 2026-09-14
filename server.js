@@ -1,6 +1,8 @@
 const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
+const os = require('os');
+const https = require('https');
 const config = require('./config');
 const store = require('./services/streamStore');
 const procManager = require('./services/processManager');
@@ -44,6 +46,62 @@ function allocatePorts() {
     return { rec, fwd, internal, stat };
 }
 
+// IP Detection helpers
+let cachedPublicIp = null;
+let lastPublicIpFetch = 0;
+
+function fetchPublicIp() {
+    return new Promise((resolve) => {
+        // Cache public IP for 10 minutes
+        if (cachedPublicIp && (Date.now() - lastPublicIpFetch < 600000)) {
+            return resolve(cachedPublicIp);
+        }
+        https.get('https://api.ipify.org?format=json', { timeout: 3500 }, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.ip) {
+                        cachedPublicIp = parsed.ip;
+                        lastPublicIpFetch = Date.now();
+                    }
+                    resolve(cachedPublicIp);
+                } catch (e) {
+                    resolve(cachedPublicIp);
+                }
+            });
+        }).on('error', () => resolve(cachedPublicIp));
+    });
+}
+
+function getLocalIps() {
+    const interfaces = os.networkInterfaces();
+    const ips = [];
+    for (const name of Object.keys(interfaces)) {
+        for (const net of interfaces[name]) {
+            if (net.family === 'IPv4' && !net.internal) {
+                // Filter out standard docker internal bridges if host IPs exist
+                ips.push({ interface: name, address: net.address });
+            }
+        }
+    }
+    return ips;
+}
+
+// REST API: System info (IP detection)
+app.get('/api/system-info', async (req, res) => {
+    const publicIp = await fetchPublicIp();
+    const localIps = getLocalIps();
+    // Also include client request remote IP / host header
+    const reqHost = req.headers.host ? req.headers.host.split(':')[0] : 'localhost';
+    res.json({
+        publicIp: publicIp || null,
+        localIps,
+        requestHost: reqHost
+    });
+});
+
 app.get('/api/streams', (req, res) => {
     const withStats = streams.map(s => {
         const liveStats = statsCollector.getStats(s.streamId);
@@ -67,7 +125,7 @@ app.post('/api/streams', (req, res) => {
         statsPort: ports.stat,
         username: username || 'user',
         password: password || 'pass',
-        playbackSecret: crypto.randomBytes(16).toString('hex'), // Secure 32-char token for OBS AES-128
+        playbackSecret: crypto.randomBytes(16).toString('hex'),
         createdAt: new Date().toISOString(),
         active: true
     };
@@ -103,4 +161,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`[Manager] Server running on http://0.0.0.0:${PORT}`);
     console.log(`[Manager] Added OpenIRL NOALBS stats proxy layer.`);
+    fetchPublicIp().then(ip => {
+        if (ip) console.log(`[Manager] Detected Public IP: ${ip}`);
+    });
 });
