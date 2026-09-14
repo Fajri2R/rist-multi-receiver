@@ -2,7 +2,7 @@
 
 Sistem RIST receiver canggih dengan dukungan **Multiple Streams Dinamis**, **Autentikasi Publisher & Playback (AES-128)**, **Auto-IP Detection**, serta **Integrasi Statistik NOALBS**.
 
-Dibangun di atas engine [libRIST](https://code.videolan.org/rist/librist) (v0.2.x), terinspirasi oleh fleksibilitas *OpenIRL/srtla-receiver* dan stabilitas *moo-rist-hosting-docker*.
+Dibangun di atas engine [libRIST](https://code.videolan.org/rist/librist) (v0.2.x), terinspirasi oleh fleksibilitas [OpenIRL/srtla-receiver](https://github.com/OpenIRL/srtla-receiver) dan stabilitas [moo-the-cow/moo-rist-hosting-docker](https://github.com/moo-the-cow/moo-rist-hosting-docker).
 
 ---
 
@@ -191,4 +191,5 @@ Masukkan konfigurasi berikut pada `config.json` NOALBS Anda:
 Anda dapat memodifikasi batas rentang port, RTT minimum, maupun Profile RIST dengan mengedit file `config.js` sebelum me-rebuild Docker.
 - `ristProfile: "1"` = Main Profile (Default standar IRLBOX/Moblin)
 - `ristProfile: "2"` = Advanced Profile
+
 
