@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
 const os = require('os');
@@ -139,6 +139,30 @@ app.post('/api/streams', (req, res) => {
     res.json(newStream);
 });
 
+app.put('/api/streams/:id', (req, res) => {
+    const streamIdx = streams.findIndex(s => s.id === req.params.id);
+    if (streamIdx === -1) return res.status(404).json({error: 'Not found'});
+    
+    const { username, password } = req.body;
+    const stream = streams[streamIdx];
+    
+    // Hentikan proses lama
+    procManager.stopStream(stream.streamId);
+    statsCollector.stopCollecting(stream.streamId);
+    
+    // Perbarui data
+    if (username !== undefined) stream.username = username;
+    if (password !== undefined) stream.password = password;
+    
+    store.saveAll(streams);
+    
+    // Mulai proses baru dengan kredensial baru
+    procManager.startStream(stream);
+    statsCollector.startCollecting(stream);
+    
+    res.json(stream);
+});
+
 app.delete('/api/streams/:id', (req, res) => {
     const streamIdx = streams.findIndex(s => s.id === req.params.id);
     if (streamIdx === -1) return res.status(404).json({error: 'Not found'});
@@ -165,3 +189,4 @@ app.listen(PORT, '0.0.0.0', () => {
         if (ip) console.log(`[Manager] Detected Public IP: ${ip}`);
     });
 });
+

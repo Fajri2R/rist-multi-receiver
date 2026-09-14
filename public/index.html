@@ -268,6 +268,31 @@
       color: var(--text-main);
     }
     .btn-secondary:hover { background: rgba(255, 255, 255, 0.08); }
+        .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-icon-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      padding: 6px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .btn-icon-ghost:hover {
+      color: #38bdf8;
+      background: rgba(6, 182, 212, 0.12);
+    }
+    .btn-icon-ghost.danger:hover {
+      color: var(--danger);
+      background: rgba(239, 68, 68, 0.12);
+    }
     .btn-danger-ghost {
       background: transparent;
       color: var(--text-muted);
@@ -632,6 +657,29 @@
     </div>
   </div>
 
+  <!-- Edit Auth Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-card">
+      <h3 class="modal-title">Edit Publisher Auth</h3>
+      <p class="modal-sub">Update RIST stream credentials (auto-restarts stream)</p>
+
+      <input type="hidden" id="editStreamId" />
+      <div class="form-group">
+        <label>Publisher Username</label>
+        <input type="text" id="editPubUser" class="form-control" placeholder="user" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label>Publisher Password</label>
+        <input type="text" id="editPubPass" class="form-control" placeholder="secretpassword" autocomplete="off" />
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitEditAuth()">Save & Apply</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast-container" id="toastBox"></div>
 
   <script>
@@ -774,9 +822,14 @@
                 <span class="status-badge ${isLive ? 'live' : 'offline'}"><span class="dot"></span>${isLive ? 'Live' : 'Offline'}</span>
                 <span class="stream-name" title="${s.name}">${s.name}</span>
               </div>
-              <button class="btn btn-danger-ghost" title="Delete stream" onclick="removeStream('${s.id}')">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              </button>
+                            <div class="card-actions">
+                <button class="btn-icon-ghost" title="Edit Publisher Auth" onclick="openEditModal('${s.id}')">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                </button>
+                <button class="btn-icon-ghost danger" title="Delete stream" onclick="removeStream('${s.id}')">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
             </div>
             <div class="metrics-row">
               <div class="metric-item"><div class="metric-value highlight">${bitrateText}</div><div class="metric-label">Bitrate</div></div>
@@ -874,6 +927,53 @@
       }, 2500);
     }
 
+        function openEditModal(id) {
+      const stream = streams.find(s => s.id === id);
+      if (!stream) return;
+      document.getElementById('editStreamId').value = stream.id;
+      document.getElementById('editPubUser').value = stream.username || '';
+      document.getElementById('editPubPass').value = stream.password || '';
+      document.getElementById('editModal').classList.add('open');
+      document.getElementById('editPubUser').focus();
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('open');
+      document.getElementById('editStreamId').value = '';
+    }
+
+    async function submitEditAuth() {
+      const id = document.getElementById('editStreamId').value;
+      const username = document.getElementById('editPubUser').value.trim();
+      const password = document.getElementById('editPubPass').value.trim();
+
+      if (!username || !password) {
+        showToast('Username and password cannot be empty', 'warning');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/streams/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        if (res.ok) {
+          showToast('Publisher credentials updated & stream restarted!', 'success');
+          closeEditModal();
+          await loadStreams();
+        } else {
+          showToast('Failed to update credentials', 'danger');
+        }
+      } catch (err) {
+        showToast('Network error while updating auth', 'danger');
+      }
+    }
+
+    document.getElementById('editModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('editModal')) closeEditModal();
+    });
+
     function openModal() { document.getElementById('addModal').classList.add('open'); document.getElementById('streamName').focus(); }
     function closeModal() { document.getElementById('addModal').classList.remove('open'); document.getElementById('streamName').value = ''; document.getElementById('pubUser').value = ''; document.getElementById('pubPass').value = ''; }
     document.getElementById('addModal').addEventListener('click', (e) => { if (e.target === document.getElementById('addModal')) closeModal(); });
@@ -885,4 +985,5 @@
   </script>
 </body>
 </html>
+
 
