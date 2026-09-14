@@ -10,8 +10,18 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Load streams and start them
 let streams = store.getAll();
+
+// Patch existing streams to have playbackSecret if they don't have one
+let storeNeedsUpdate = false;
+streams.forEach(s => {
+    if (!s.playbackSecret) {
+        s.playbackSecret = crypto.randomBytes(16).toString('hex');
+        storeNeedsUpdate = true;
+    }
+});
+if (storeNeedsUpdate) store.saveAll(streams);
+
 streams.forEach(stream => {
     if (stream.active !== false) {
         procManager.startStream(stream);
@@ -25,7 +35,6 @@ function allocatePorts() {
     let internal = config.internalPortStart;
     let stat = config.statsPortStart;
 
-    // find highest used port to prevent collisions
     streams.forEach(s => {
         if (s.receivePort >= rec) rec = s.receivePort + 1;
         if (s.forwardPort >= fwd) fwd = s.forwardPort + 1;
@@ -35,7 +44,6 @@ function allocatePorts() {
     return { rec, fwd, internal, stat };
 }
 
-// REST API: Get All Streams (including live stats)
 app.get('/api/streams', (req, res) => {
     const withStats = streams.map(s => {
         const liveStats = statsCollector.getStats(s.streamId);
@@ -44,7 +52,6 @@ app.get('/api/streams', (req, res) => {
     res.json(withStats);
 });
 
-// REST API: Create Stream
 app.post('/api/streams', (req, res) => {
     const { name, username, password } = req.body;
     const streamId = crypto.randomUUID().replace(/-/g, '');
@@ -52,7 +59,7 @@ app.post('/api/streams', (req, res) => {
     
     const newStream = {
         id: crypto.randomUUID(),
-        streamId, // equivalent to the 'key'
+        streamId,
         name: name || `Stream-${streamId.substring(0,6)}`,
         receivePort: ports.rec,
         forwardPort: ports.fwd,
@@ -60,6 +67,7 @@ app.post('/api/streams', (req, res) => {
         statsPort: ports.stat,
         username: username || 'user',
         password: password || 'pass',
+        playbackSecret: crypto.randomBytes(16).toString('hex'), // Secure 32-char token for OBS AES-128
         createdAt: new Date().toISOString(),
         active: true
     };
@@ -73,7 +81,6 @@ app.post('/api/streams', (req, res) => {
     res.json(newStream);
 });
 
-// REST API: Delete Stream
 app.delete('/api/streams/:id', (req, res) => {
     const streamIdx = streams.findIndex(s => s.id === req.params.id);
     if (streamIdx === -1) return res.status(404).json({error: 'Not found'});
@@ -87,14 +94,8 @@ app.delete('/api/streams/:id', (req, res) => {
     res.json({ success: true });
 });
 
-// ==========================================
-// NOALBS COMPATIBLE STATS ENDPOINT
-// Identical format to OpenIRL / SLS so NOALBS will accept it directly!
-// Path: /stats/:streamId
-// ==========================================
 app.get('/stats/:streamId', (req, res) => {
     const { streamId } = req.params;
-    // legacy=1 or not doesn't matter, we send the NOALBS format
     res.json(statsCollector.getNoalbsStats(streamId));
 });
 

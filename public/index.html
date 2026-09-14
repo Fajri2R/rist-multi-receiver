@@ -18,10 +18,8 @@
     .btn { cursor:pointer; border:none; border-radius:8px; padding:10px 20px; font-size:14px; font-weight:600; transition:all .15s; }
     .btn-primary { background:#238636; color:#fff; }
     .btn-primary:hover { background:#2ea043; }
-    .btn-danger { background:#da3633; color:#fff; }
-    .btn-danger:hover { background:#f85149; }
 
-    .cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px,1fr)); gap:18px; }
+    .cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(360px,1fr)); gap:18px; }
     .card { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; position:relative; }
     .card.online { border-left:4px solid #2ea043; }
     .card.offline { border-left:4px solid #f85149; }
@@ -33,13 +31,12 @@
     .status-dot.off { background:#f85149; }
 
     .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; margin-bottom:16px; }
-    .info-item { }
     .info-label { font-size:10px; text-transform:uppercase; color:#8b949e; letter-spacing:.5px; }
     .info-value { font-size:13px; color:#c9d1d9; font-family:monospace; margin-top:2px; word-break:break-all; }
 
     .metrics { display:flex; gap:12px; margin-bottom:16px; }
     .metric-box { flex:1; background:#0d1117; border-radius:8px; padding:10px; text-align:center; }
-    .metric-box .val { font-size:20px; font-weight:700; color:#58a6ff; }
+    .metric-box .val { font-size:18px; font-weight:700; color:#58a6ff; }
     .metric-box .lbl { font-size:10px; color:#8b949e; margin-top:2px; }
 
     .copy-row { display:flex; gap:8px; align-items:center; background:#0d1117; border-radius:8px; padding:8px 12px; margin-bottom:8px; font-size:12px; font-family:monospace; }
@@ -76,7 +73,7 @@
   </header>
   <main>
     <div class="noalbs-note">
-      <strong>NOALBS Integration:</strong> Use stats URL format <code>http://&lt;your-server&gt;:3000/stats/&lt;streamId&gt;</code> — type: <code>OpenIRL</code>
+      <strong>NOALBS:</strong> <code>http://&lt;server&gt;:3000/stats/&lt;streamId&gt;</code> (Type: <code>OpenIRL</code>) | <strong>OBS Playback:</strong> Menggunakan enkripsi AES-128 Secret
     </div>
     <div class="actions">
       <button class="btn btn-primary" onclick="showModal()">+ Add Stream</button>
@@ -89,9 +86,9 @@
       <h2>New RIST Stream</h2>
       <label>Stream Name</label>
       <input id="mName" type="text" placeholder="e.g. Camera 1" />
-      <label>RIST Username</label>
+      <label>Publisher Username</label>
       <input id="mUser" type="text" placeholder="streamer" />
-      <label>RIST Password</label>
+      <label>Publisher Password</label>
       <input id="mPass" type="text" placeholder="strongpassword123" />
       <div class="modal-actions">
         <button class="btn btn-cancel" onclick="hideModal()">Cancel</button>
@@ -109,6 +106,12 @@
       render();
     }
 
+    function formatBitrate(bps) {
+      if (!bps) return '—';
+      if (bps >= 1000000) return `${(bps / 1000000).toFixed(2)} Mbps`;
+      return `${(bps / 1000).toFixed(0)} kbps`;
+    }
+
     function render() {
       const el = document.getElementById('cards');
       document.getElementById('streamCount').textContent = `${streams.length} stream${streams.length !== 1 ? 's' : ''}`;
@@ -120,12 +123,13 @@
       el.innerHTML = streams.map(s => {
         const stats = s.liveStats || {};
         const online = stats.online;
-        const bitrate = stats.bitrate ? `${(stats.bitrate/1000).toFixed(1)} kbps` : '—';
+        const bitrate = formatBitrate(stats.bitrate);
         const rtt = stats.rtt ? `${stats.rtt} ms` : '—';
         const hostname = window.location.hostname;
 
         const publishUrl = `rist://${hostname}:${s.receivePort}?username=${s.username}&password=${s.password}`;
-        const playUrl = `rist://${hostname}:${s.forwardPort}`;
+        // Auth with AES-128 & Secret for OBS
+        const playUrl = `rist://${hostname}:${s.forwardPort}?cname=${s.streamId}&aes-type=128&secret=${s.playbackSecret}`;
         const statsUrl = `http://${hostname}:3000/stats/${s.streamId}`;
 
         return `
@@ -145,18 +149,18 @@
                 <div class="lbl">RTT</div>
               </div>
               <div class="metric-box">
-                <div class="val">${online ? 'ON' : 'OFF'}</div>
+                <div class="val">${online ? 'ONLINE' : 'OFFLINE'}</div>
                 <div class="lbl">Status</div>
               </div>
             </div>
             <div class="info-grid">
               <div class="info-item"><div class="info-label">Receive Port</div><div class="info-value">${s.receivePort}/udp</div></div>
               <div class="info-item"><div class="info-label">Forward Port</div><div class="info-value">${s.forwardPort}/udp</div></div>
-              <div class="info-item"><div class="info-label">Username</div><div class="info-value">${s.username}</div></div>
-              <div class="info-item"><div class="info-label">Password</div><div class="info-value">${s.password}</div></div>
+              <div class="info-item"><div class="info-label">Pub Auth</div><div class="info-value">${s.username} / ***</div></div>
+              <div class="info-item"><div class="info-label">Play Secret</div><div class="info-value">${s.playbackSecret ? s.playbackSecret.slice(0,8) + '...' : '—'}</div></div>
             </div>
             <div class="copy-row"><span class="url-label">PUB</span><span title="${publishUrl}">${publishUrl}</span><button class="copy-btn" onclick="copy('${publishUrl}')">Copy</button></div>
-            <div class="copy-row"><span class="url-label">PLAY</span><span title="${playUrl}">${playUrl}</span><button class="copy-btn" onclick="copy('${playUrl}')">Copy</button></div>
+            <div class="copy-row"><span class="url-label">PLAY (OBS)</span><span title="${playUrl}">${playUrl}</span><button class="copy-btn" onclick="copy('${playUrl}')">Copy</button></div>
             <div class="copy-row"><span class="url-label">STATS</span><span title="${statsUrl}">${statsUrl}</span><button class="copy-btn" onclick="copy('${statsUrl}')">Copy</button></div>
           </div>
         `;
@@ -180,7 +184,7 @@
     }
 
     function copy(text) {
-      navigator.clipboard.writeText(text).then(() => alert('Copied!'));
+      navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!'));
     }
 
     function showModal() {
@@ -199,7 +203,7 @@
     });
 
     fetchStreams();
-    setInterval(fetchStreams, 3000); // auto-refresh stats every 3s
+    setInterval(fetchStreams, 3000);
   </script>
 </body>
 </html>
