@@ -991,6 +991,20 @@
         });
         const data = await res.json();
 
+        if (res.status === 429) {
+          const remaining = data.error || 'Too many failed attempts. Try again in 10 minutes.';
+          msgEl.className = 'auth-msg error';
+          msgEl.innerHTML = `🔒 ${remaining}`;
+          card.classList.remove('auth-shake');
+          void card.offsetWidth;
+          card.classList.add('auth-shake');
+          showToast('IP Locked out (10 min)', 'danger');
+          btn.textContent = 'Unlock Dashboard';
+          btn.disabled = false;
+          input.disabled = true;
+          return;
+        }
+
         if (data.valid) {
           msgEl.className = 'auth-msg success';
           msgEl.innerHTML = '✓ API Key Valid! Unlocking dashboard...';
@@ -1004,11 +1018,13 @@
             msgEl.innerHTML = '';
             btn.textContent = 'Unlock Dashboard';
             btn.disabled = false;
+            input.disabled = false;
             initializeDashboard();
           }, 800);
         } else {
+          const remaining = 5 - (parseInt((data.error || '').match(/\d+/)?.[0]) || 0);
           msgEl.className = 'auth-msg error';
-          msgEl.innerHTML = '✕ Invalid API Key. Please check and try again.';
+          msgEl.innerHTML = `✕ Invalid API Key. Please check and try again.`;
           card.classList.remove('auth-shake');
           void card.offsetWidth;
           card.classList.add('auth-shake');
@@ -1373,6 +1389,7 @@
   </script>
 </body>
 </html>
+
 
 
 
