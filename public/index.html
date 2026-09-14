@@ -1113,7 +1113,7 @@
     async function removeStream(id) {
       if (!confirm('Are you sure you want to delete this channel?')) return;
       try {
-        const res = await apiFetch(/api/streams/\${id}\, { method: 'DELETE' });
+        const res = await apiFetch('/api/streams/' + id, { method: 'DELETE' });
         if (res.ok) { showToast('Channel removed', 'info'); await loadStreams(); }
       } catch (e) { showToast('Failed to delete channel', 'danger'); }
     }
@@ -1188,7 +1188,7 @@
       }
 
       try {
-        const res = await apiFetch(/api/streams/\${id}\, {
+        const res = await apiFetch('/api/streams/' + id, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
@@ -1232,6 +1232,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 
