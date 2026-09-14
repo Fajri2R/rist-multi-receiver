@@ -45,18 +45,13 @@ Instalasi di PC lokal sangat cocok jika Anda ingin menerima feed kamera di jarin
 - Pasang [Git](https://git-scm.com/).
 
 ### 2. Langkah Instalasi
-Buka Terminal / PowerShell / Command Prompt, lalu jalankan:
-
-```bash
-# Clone repository
-git clone https://github.com/Fajri2R/rist-multi-receiver.git
-
-# Masuk ke direktori
-cd rist-multi-receiver
-
-# Build dan jalankan container
-docker compose up -d --build
-```
+1. Clone atau Download ZIP repository ini:
+   ```bash
+   git clone https://github.com/Fajri2R/rist-multi-receiver.git
+   cd rist-multi-receiver
+   ```
+2. Jalankan skrip `install.bat` (klik dua kali `install.bat` dari File Explorer Windows Anda).
+   - *Skrip ini akan otomatis mencari port web yang kosong jika port default 3000 sedang dipakai oleh aplikasi lain (misalnya Node/Grafana) agar tidak error (port collision).*
 
 ### 3. Akses Dashboard
 Buka browser dan buka:
@@ -108,13 +103,15 @@ sudo ufw status
 *(Catatan: Jika Anda menggunakan AWS EC2, Google Cloud, atau Oracle Cloud, pastikan Anda juga membuka port di atas pada Security Group / Firewall dashboard web penyedia VPS).*
 
 ### 4. Clone & Jalankan RIST Multi-Receiver
+Gunakan *auto-installer script* yang akan **secara otomatis mencari port web yang kosong** (jika port default 3000 sedang dipakai aplikasi lain) dan mengonfigurasi IP otomatis:
+
 ```bash
 # Unduh source code
 git clone https://github.com/Fajri2R/rist-multi-receiver.git
 cd rist-multi-receiver
 
-# Jalankan secara background
-docker compose up -d --build
+# Jalankan skrip auto installer
+bash install.sh
 ```
 
 ### 5. Kelola Container di VPS
@@ -193,6 +190,7 @@ Masukkan konfigurasi berikut pada `config.json` NOALBS Anda:
 Anda dapat memodifikasi batas rentang port, RTT minimum, maupun Profile RIST dengan mengedit file `config.js` sebelum me-rebuild Docker.
 - `ristProfile: "1"` = Main Profile (Default standar IRLBOX/Moblin)
 - `ristProfile: "2"` = Advanced Profile
+
 
 
 

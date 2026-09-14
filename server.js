@@ -68,20 +68,60 @@ streams.forEach(stream => {
     }
 });
 
-function allocatePorts() {
+const net = require('net');
+const dgram = require('dgram');
+
+// Port Probing Helper: Checks if a UDP port is available
+function checkUdpPortAvailable(port) {
+    return new Promise((resolve) => {
+        const socket = dgram.createSocket('udp4');
+        socket.once('error', () => resolve(false));
+        socket.once('listening', () => {
+            socket.close();
+            resolve(true);
+        });
+        socket.bind(port, '0.0.0.0');
+    });
+}
+
+// Function to safely allocate next available ports by probing the system directly
+async function allocatePorts() {
     let rec = config.receivePortStart;
     let fwd = config.forwardPortStart;
     let internal = config.internalPortStart;
     let stat = config.statsPortStart;
 
-    // RIST Main profile requires EVEN ports and takes port + 1 for RTCP feedback
-    // So ports MUST increment by 2 to prevent collision!
+    // First skip ports currently known by our database logic
     streams.forEach(s => {
         if (s.receivePort >= rec) rec = s.receivePort + 2;
         if (s.forwardPort >= fwd) fwd = s.forwardPort + 2;
         if (s.internalPort >= internal) internal = s.internalPort + 2;
         if (s.statsPort >= stat) stat = s.statsPort + 1;
     });
+
+    // RIST needs pairs: (port and port+1). We verify BOTH are available.
+    // Probing Receiver Port Pair
+    while (!(await checkUdpPortAvailable(rec)) || !(await checkUdpPortAvailable(rec + 1))) {
+        console.warn(`[Port Allocator] Port ${rec} or ${rec+1} is busy, trying ${rec + 2}`);
+        rec += 2;
+    }
+
+    // Probing Forward Port Pair
+    while (!(await checkUdpPortAvailable(fwd)) || !(await checkUdpPortAvailable(fwd + 1))) {
+        console.warn(`[Port Allocator] Port ${fwd} or ${fwd+1} is busy, trying ${fwd + 2}`);
+        fwd += 2;
+    }
+
+    // Probing Internal UDP Port (only 1 needed per receiver, but we keep steps of 2 to be safe)
+    while (!(await checkUdpPortAvailable(internal))) {
+        internal += 2;
+    }
+
+    // Probing Stats UDP Port
+    while (!(await checkUdpPortAvailable(stat))) {
+        stat += 1;
+    }
+
     return { rec, fwd, internal, stat };
 }
 
@@ -181,10 +221,10 @@ app.get('/api/streams', (req, res) => {
     res.json(withStats);
 });
 
-app.post('/api/streams', (req, res) => {
+app.post('/api/streams', async (req, res) => {
     const { name, username, password } = req.body;
     const streamId = crypto.randomUUID().replace(/-/g, '');
-    const ports = allocatePorts();
+    const ports = await allocatePorts();
     
     const newStream = {
         id: crypto.randomUUID(),
@@ -265,6 +305,7 @@ app.listen(PORT, '0.0.0.0', () => {
         if (ip) console.log(`[Manager] Detected Public IP: ${ip}`);
     });
 });
+
 
 
 
