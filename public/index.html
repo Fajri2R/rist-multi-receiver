@@ -331,6 +331,12 @@
       color: var(--text-muted);
       margin-top: -10px;
       margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 2px;
+    }
+      margin-bottom: 14px;
     }
 
     /* Auth Lockscreen Overlay */
@@ -926,11 +932,18 @@
       <div class="form-group">
         <label>Publisher Username</label>
         <input type="text" id="pubUser" class="form-control" placeholder="user" autocomplete="off" />
+        <div class="form-hint">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Letters, numbers, and: <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:4px;font-size:11px;">- _ . !</code>
+        </div>
       </div>
       <div class="form-group">
         <label>Publisher Password</label>
         <input type="text" id="pubPass" class="form-control" placeholder="secretpassword" autocomplete="off" />
-        <div class="form-hint">Allowed: letters, numbers, - _ . !</div>
+        <div class="form-hint">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Letters, numbers, and: <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:4px;font-size:11px;">- _ . !</code>
+        </div>
       </div>
 
       <div class="modal-foot">
@@ -950,10 +963,18 @@
       <div class="form-group">
         <label>Publisher Username</label>
         <input type="text" id="editPubUser" class="form-control" placeholder="user" autocomplete="off" />
+        <div class="form-hint">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Letters, numbers, and: <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:4px;font-size:11px;">- _ . !</code>
+        </div>
       </div>
       <div class="form-group">
         <label>Publisher Password</label>
         <input type="text" id="editPubPass" class="form-control" placeholder="secretpassword" autocomplete="off" />
+        <div class="form-hint">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Letters, numbers, and: <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:4px;font-size:11px;">- _ . !</code>
+        </div>
       </div>
 
       <div class="modal-foot">
@@ -1453,6 +1474,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 
