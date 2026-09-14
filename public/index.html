@@ -112,81 +112,59 @@
       letter-spacing: 0.2px;
     }
 
-    /* DIRECT IP SELECTOR BUTTONS (NO HIDDEN DROPDOWN) */
+        /* IP DROPDOWN SELECTOR */
     .ip-selector-bar {
       display: flex;
       align-items: center;
       background: rgba(0, 0, 0, 0.45);
       border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 4px;
-      gap: 4px;
-      flex-wrap: wrap;
+      border-radius: 10px;
+      padding: 4px 8px;
+      gap: 8px;
     }
     .ip-label {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.6px;
       color: var(--text-muted);
-      padding: 0 8px;
+      white-space: nowrap;
     }
-    .ip-btn {
-      background: transparent;
-      border: 1px solid transparent;
-      color: #94a3b8;
-      border-radius: 8px;
-      padding: 6px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      font-family: var(--font-mono);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-      user-select: none;
-    }
-    .ip-btn:hover {
+    .ip-select {
       background: rgba(255, 255, 255, 0.05);
-      color: #fff;
-    }
-    .ip-btn.active {
-      background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(99, 102, 241, 0.25));
-      border-color: rgba(6, 182, 212, 0.5);
       color: #38bdf8;
-      box-shadow: 0 2px 8px rgba(6, 182, 212, 0.2);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      min-width: 220px;
+      transition: all 0.15s;
     }
-    .ip-btn .icon {
-      font-size: 13px;
+    .ip-select:hover, .ip-select:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+    }
+    .ip-select option {
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: var(--font-mono);
+      padding: 6px;
     }
     .ip-custom-field {
       display: none;
       background: rgba(0, 0, 0, 0.5);
       border: 1px solid rgba(6, 182, 212, 0.5);
-      border-radius: 6px;
-      padding: 5px 10px;
+      border-radius: 8px;
+      padding: 6px 12px;
       color: #38bdf8;
       font-family: var(--font-mono);
       font-size: 12px;
       outline: none;
       width: 170px;
-      margin-left: 4px;
-    }
-
-    .header-badges {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .pill {
-      font-size: 12px;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--card-border);
-      color: var(--text-muted);
     }
 
     /* Main Container */
@@ -584,21 +562,12 @@
         </div>
       </div>
       
-      <!-- DIRECT IP SELECTOR (Public, Local, Localhost, Custom) -->
-      <div class="ip-selector-bar" id="ipPillsBar">
+            <!-- ACTIVE IP DROPDOWN ONLY -->
+      <div class="ip-selector-bar">
         <span class="ip-label">Active IP:</span>
-        <button type="button" class="ip-btn" id="btnPublicIp" onclick="selectIpType('public')">
-          <span class="icon">🌐</span> Public: <span id="valPublicIp">Loading...</span>
-        </button>
-        <button type="button" class="ip-btn" id="btnLocalIp" onclick="selectIpType('local')">
-          <span class="icon">🏠</span> LAN: <span id="valLocalIp">Loading...</span>
-        </button>
-        <button type="button" class="ip-btn" id="btnLocalhost" onclick="selectIpType('localhost')">
-          <span class="icon">💻</span> Localhost
-        </button>
-        <button type="button" class="ip-btn" id="btnCustomIp" onclick="selectIpType('custom')">
-          <span class="icon">✏️</span> Custom
-        </button>
+        <select id="ipSelect" class="ip-select" onchange="onIpSelectChange()">
+          <option value="detecting">Detecting IPs...</option>
+        </select>
         <input type="text" id="ipCustomInput" class="ip-custom-field" placeholder="e.g. 192.168.1.100" oninput="onCustomIpInput()" />
       </div>
 
@@ -688,84 +657,89 @@
     let currentSelectedIp = '';
     let currentSelectedType = 'public'; // 'public' | 'local' | 'localhost' | 'custom'
 
-    // ==========================================
-    // IP DETECTION & DIRECT SELECTION
+        // ==========================================
+    // IP DETECTION & DROPDOWN LOGIC
     // ==========================================
     async function loadSystemIps() {
       try {
         const res = await fetch('/api/system-info');
         const data = await res.json();
         systemIps.publicIp = data.publicIp || '';
-        
-        // Find best local LAN IP
-        if (data.localIps && data.localIps.length) {
-          // Prefer non-Docker bridges (172.16 - 172.31)
-          const isDocker = (addr) => {
-            const p = addr.split('.').map(Number);
-            return p[0] === 172 && p[1] >= 16 && p[1] <= 31;
-          };
-          const realLan = data.localIps.find(n => !isDocker(n.address));
-          systemIps.localIp = realLan ? realLan.address : data.localIps[0].address;
 
-          // If accessed via actual browser hostname that is not localhost, prefer it
-          const browserHost = window.location.hostname;
-          if (browserHost !== 'localhost' && browserHost !== '127.0.0.1' && !isDocker(browserHost)) {
-            systemIps.localIp = browserHost;
-          }
-        }
-        
-        // Fallback to current browser URL if localIp is empty
-        if (!systemIps.localIp) {
-          systemIps.localIp = (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') 
-            ? window.location.hostname 
-            : '192.168.1.x';
+        // Prefer non-Docker bridges (172.16 - 172.31)
+        const isDocker = (addr) => {
+          const p = addr.split('.').map(Number);
+          return p[0] === 172 && p[1] >= 16 && p[1] <= 31;
+        };
+        const realLan = data.localIps.find(n => !isDocker(n.address));
+        systemIps.localIp = realLan ? realLan.address : data.localIps[0].address;
+
+        // If accessed via actual browser hostname that is not localhost, prefer it
+        const browserHost = window.location.hostname;
+        if (browserHost !== 'localhost' && browserHost !== '127.0.0.1' && !isDocker(browserHost)) {
+          systemIps.localIp = browserHost;
         }
       } catch (err) {
         systemIps.localIp = window.location.hostname;
       }
 
-      // Update button labels
-      document.getElementById('valPublicIp').textContent = systemIps.publicIp || 'Unavailable';
-      document.getElementById('valLocalIp').textContent = systemIps.localIp || 'Unavailable';
-
-      // Restore saved preference
-      const savedType = localStorage.getItem('rist_ip_type') || 'public';
-      const savedCustomVal = localStorage.getItem('rist_custom_ip') || '';
-      if (savedCustomVal) document.getElementById('ipCustomInput').value = savedCustomVal;
-
-      selectIpType(savedType);
+      populateIpSelect();
     }
 
-    function selectIpType(type) {
-      currentSelectedType = type;
-      localStorage.setItem('rist_ip_type', type);
+    function populateIpSelect() {
+      const select = document.getElementById('ipSelect');
+      select.innerHTML = '';
 
-      const btnPub = document.getElementById('btnPublicIp');
-      const btnLoc = document.getElementById('btnLocalIp');
-      const btnHost = document.getElementById('btnLocalhost');
-      const btnCust = document.getElementById('btnCustomIp');
+      const options = [];
+
+      if (systemIps.publicIp) {
+        options.push({ value: systemIps.publicIp, label: `🌐 Public IP (${systemIps.publicIp})` });
+      }
+
+      if (systemIps.localIp) {
+        options.push({ value: systemIps.localIp, label: `🏠 LAN IP (${systemIps.localIp})` });
+      }
+
+      options.push({ value: '127.0.0.1', label: '💻 Localhost (127.0.0.1)' });
+      options.push({ value: 'custom', label: '✏️ Custom Domain / IP...' });
+
+      options.forEach(opt => {
+        const el = document.createElement('option');
+        el.value = opt.value;
+        el.textContent = opt.label;
+        select.appendChild(el);
+      });
+
+      // Restore saved preference
+      const savedIp = localStorage.getItem('rist_active_ip');
+      const savedCustom = localStorage.getItem('rist_custom_ip') || '';
+      if (savedCustom) document.getElementById('ipCustomInput').value = savedCustom;
+
+      if (savedIp === 'custom') {
+        select.value = 'custom';
+      } else if (savedIp && options.some(o => o.value === savedIp)) {
+        select.value = savedIp;
+      } else {
+        // Default to Public or LAN
+        select.value = options[0].value;
+      }
+
+      onIpSelectChange();
+    }
+
+    function onIpSelectChange() {
+      const select = document.getElementById('ipSelect');
       const customInput = document.getElementById('ipCustomInput');
 
-      [btnPub, btnLoc, btnHost, btnCust].forEach(b => b.classList.remove('active'));
-      customInput.style.display = 'none';
-
-      if (type === 'public' && systemIps.publicIp) {
-        btnPub.classList.add('active');
-        currentSelectedIp = systemIps.publicIp;
-      } else if (type === 'local' && systemIps.localIp) {
-        btnLoc.classList.add('active');
-        currentSelectedIp = systemIps.localIp;
-      } else if (type === 'localhost') {
-        btnHost.classList.add('active');
-        currentSelectedIp = '127.0.0.1';
-      } else if (type === 'custom') {
-        btnCust.classList.add('active');
+      if (select.value === 'custom') {
         customInput.style.display = 'inline-block';
+        customInput.focus();
         currentSelectedIp = customInput.value.trim() || window.location.hostname;
+        localStorage.setItem('rist_active_ip', 'custom');
       } else {
-        // Fallback if public IP not loaded
-        btnLoc.classList.add('active');
-        currentSelectedIp = systemIps.localIp || window.location.hostname;
+        customInput.style.display = 'none';
+        currentSelectedIp = select.value;
+        localStorage.setItem('rist_active_ip', select.value);
       }
 
       renderGrid();
@@ -996,6 +970,7 @@
   </script>
 </body>
 </html>
+
 
 
 
