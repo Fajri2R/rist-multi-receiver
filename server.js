@@ -41,7 +41,36 @@ function getClientIp(req) {
     return ip;
 }
 
+// Check if an IP belongs to private LAN / loopback / Docker networks (RFC 1918)
+function isPrivateOrLocalIp(ip) {
+    if (!ip) return false;
+    // Loopback
+    if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') return true;
+    
+    // Class A: 10.0.0.0 - 10.255.255.255 (Your Wi-Fi & Ethernet)
+    if (ip.startsWith('10.')) return true;
+    
+    // Class C: 192.168.0.0 - 192.168.255.255 (Home LAN)
+    if (ip.startsWith('192.168.')) return true;
+    
+    // Class B / Docker Bridges: 172.16.0.0 - 172.31.255.255
+    if (ip.startsWith('172.')) {
+        const second = parseInt(ip.split('.')[1], 10);
+        if (second >= 16 && second <= 31) return true;
+    }
+    
+    // Link-Local: 169.254.0.0 - 169.254.255.255
+    if (ip.startsWith('169.254.')) return true;
+    
+    return false;
+}
+
 function isRateLimited(ip) {
+    // Local / Private LAN IPs are WHITELISTED from brute-force lockout
+    if (isPrivateOrLocalIp(ip)) {
+        return false;
+    }
+
     const record = rateLimitCache[ip];
     if (!record) return false;
     if (record.lockoutUntil > 0) {
@@ -56,6 +85,12 @@ function isRateLimited(ip) {
 }
 
 function recordFailedAttempt(ip) {
+    // Local IPs still get logged for security visibility, but never locked out
+    if (isPrivateOrLocalIp(ip)) {
+        console.warn(`[AUTH] Failed auth attempt from local IP ${ip} (Local exemption: no lockout)`);
+        return 0;
+    }
+
     const now = Date.now();
     if (!rateLimitCache[ip]) {
         rateLimitCache[ip] = { attempts: 1, lockoutUntil: 0, firstAttempt: now };
@@ -71,9 +106,9 @@ function recordFailedAttempt(ip) {
     const count = rateLimitCache[ip].attempts;
     if (count >= 5 && rateLimitCache[ip].lockoutUntil === 0) {
         rateLimitCache[ip].lockoutUntil = now + 600000; // 10 minutes lockout
-        console.warn(`[SECURITY ALERT] IP ${ip} has been LOCKED OUT for 10 minutes (5 failed attempts).`);
+        console.warn(`[SECURITY ALERT] Public IP ${ip} has been LOCKED OUT for 10 minutes (5 failed attempts).`);
     } else if (count < 5) {
-        console.warn(`[SECURITY] Failed auth attempt from IP ${ip} (${count}/5)`);
+        console.warn(`[SECURITY] Failed auth attempt from Public IP ${ip} (${count}/5)`);
     }
     return count;
 }
@@ -108,16 +143,18 @@ app.post('/api/auth/verify', (req, res) => {
     
     // 3. Increment failure count
     const currentAttempts = recordFailedAttempt(ip);
-    const remaining = Math.max(0, 5 - currentAttempts);
+    const isLocal = isPrivateOrLocalIp(ip);
 
-    if (currentAttempts >= 5) {
+    if (!isLocal && currentAttempts >= 5) {
         return res.status(429).json({ success: false, error: 'Too many failed attempts. IP locked out for 10 minutes.' });
     }
 
-    // Artificial timing jitter (200-400ms) to thwart automated brute-force scripts
+    const remainingMsg = isLocal ? 'Invalid API key. Please check and try again.' : `Invalid API key. ${Math.max(0, 5 - currentAttempts)} attempt(s) remaining.`;
+
+    // Artificial timing jitter (150-350ms) to thwart automated brute-force scripts
     setTimeout(() => {
-        return res.status(401).json({ success: false, error: `Invalid API key. ${remaining} attempt(s) remaining.` });
-    }, Math.floor(Math.random() * 200) + 150);
+        return res.status(401).json({ success: false, error: remainingMsg });
+    }, isLocal ? 50 : (Math.floor(Math.random() * 200) + 150));
 });
 
 // Authentication Guard Middleware for Protected API routes
@@ -398,6 +435,7 @@ app.listen(PORT, '0.0.0.0', () => {
         if (ip) console.log(`[Manager] Detected Public IP: ${ip}`);
     });
 });
+
 
 
 
