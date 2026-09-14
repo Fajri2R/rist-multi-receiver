@@ -226,7 +226,51 @@
       border-color: #38bdf8;
       box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.15);
     }
-    .auth-card .btn-primary { width: 100%; padding: 12px; font-size: 15px; }
+        .auth-card .btn-primary { width: 100%; padding: 12px; font-size: 15px; }
+
+    /* In-Card Feedback Message */
+    .auth-msg {
+      display: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 18px;
+      animation: msgIn 0.2s ease;
+    }
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .auth-msg.error {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+    }
+    .auth-msg.success {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #6ee7b7;
+    }
+
+    /* Shake animation on invalid key */
+    .auth-shake {
+      animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-2px, 0, 0); }
+      20%, 80% { transform: translate3d(3px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-5px, 0, 0); }
+      40%, 60% { transform: translate3d(5px, 0, 0); }
+    }
 
     .header-auth-btn {
       background: rgba(239, 68, 68, 0.1);
@@ -593,7 +637,7 @@
     .modal-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
 
     /* Toast */
-    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 100001; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
     .toast {
       background: rgba(15, 23, 42, 0.95);
       backdrop-filter: blur(12px);
@@ -628,6 +672,7 @@
       </div>
       <h2>Management Locked</h2>
       <p>Please enter your API Key to access the dashboard. Find the key in the terminal console or by running <code>cat data/.apikey</code></p>
+      <div id="authMsg" class="auth-msg"></div>
       <div class="auth-input-group">
         <input type="password" id="authKeyInput" placeholder="Enter API Key (32 chars hex)" onkeypress="if(event.key === 'Enter') checkAuthKey()" autocomplete="off" />
       </div>
@@ -784,11 +829,26 @@
       showAuthGate();
     }
 
-    async function checkAuthKey() {
-      const key = document.getElementById('authKeyInput').value.trim();
-      if (!key) return;
+        async function checkAuthKey() {
+      const input = document.getElementById('authKeyInput');
+      const msgEl = document.getElementById('authMsg');
+      const card = document.querySelector('.auth-card');
+      const key = input.value.trim();
+
+      if (!key) {
+        msgEl.className = 'auth-msg error';
+        msgEl.innerHTML = '⚠️ Please enter an API key';
+        card.classList.remove('auth-shake');
+        void card.offsetWidth;
+        card.classList.add('auth-shake');
+        input.focus();
+        return;
+      }
+
       const btn = document.getElementById('authBtn');
-      btn.textContent = 'Verifying...';
+      btn.textContent = 'Verifying API Key...';
+      btn.disabled = true;
+
       try {
         const res = await fetch('/api/auth/verify', {
           method: 'POST',
@@ -796,21 +856,41 @@
           body: JSON.stringify({ key })
         });
         const data = await res.json();
+
         if (data.valid) {
+          msgEl.className = 'auth-msg success';
+          msgEl.innerHTML = '✓ API Key Valid! Unlocking dashboard...';
           currentApiKey = key;
           localStorage.setItem('rist_api_key', key);
-          hideAuthGate();
           showToast('Authenticated Successfully', 'success');
-          // Start loading data now that we are unlocked
-          initializeDashboard();
+          
+          setTimeout(() => {
+            hideAuthGate();
+            msgEl.className = 'auth-msg';
+            msgEl.innerHTML = '';
+            btn.textContent = 'Unlock Dashboard';
+            btn.disabled = false;
+            initializeDashboard();
+          }, 800);
         } else {
+          msgEl.className = 'auth-msg error';
+          msgEl.innerHTML = '✕ Invalid API Key. Please check and try again.';
+          card.classList.remove('auth-shake');
+          void card.offsetWidth;
+          card.classList.add('auth-shake');
           showToast('Invalid API Key', 'danger');
-          document.getElementById('authKeyInput').value = '';
+          btn.textContent = 'Unlock Dashboard';
+          btn.disabled = false;
+          input.value = '';
+          input.focus();
         }
       } catch (err) {
+        msgEl.className = 'auth-msg error';
+        msgEl.innerHTML = '✕ Connection error to receiver backend';
         showToast('Connection error', 'danger');
+        btn.textContent = 'Unlock Dashboard';
+        btn.disabled = false;
       }
-      btn.textContent = 'Unlock Dashboard';
     }
 
     async function loadSystemIps() {
@@ -1152,6 +1232,7 @@
   </script>
 </body>
 </html>
+
 
 
 
