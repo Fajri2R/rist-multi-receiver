@@ -27,21 +27,114 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ==========================================
+// SECURITY: Rate Limiter & Timing-Safe Auth
+// ==========================================
+const rateLimitCache = {};
+
+function getClientIp(req) {
+    let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    if (typeof ip === 'string') {
+        ip = ip.split(',')[0].trim();
+        if (ip.startsWith('::ffff:')) ip = ip.replace('::ffff:', '');
+    }
+    return ip;
+}
+
+function isRateLimited(ip) {
+    const record = rateLimitCache[ip];
+    if (!record) return false;
+    if (record.lockoutUntil > 0) {
+        if (Date.now() < record.lockoutUntil) {
+            return true;
+        }
+        // Lockout period has elapsed, fully clear the record
+        delete rateLimitCache[ip];
+        return false;
+    }
+    return false;
+}
+
+function recordFailedAttempt(ip) {
+    const now = Date.now();
+    if (!rateLimitCache[ip]) {
+        rateLimitCache[ip] = { attempts: 1, lockoutUntil: 0, firstAttempt: now };
+    } else {
+        // If attempts are older than 10 minutes, reset window
+        if (now - rateLimitCache[ip].firstAttempt > 600000 && rateLimitCache[ip].lockoutUntil === 0) {
+            rateLimitCache[ip] = { attempts: 1, lockoutUntil: 0, firstAttempt: now };
+        } else {
+            rateLimitCache[ip].attempts += 1;
+        }
+    }
+    
+    const count = rateLimitCache[ip].attempts;
+    if (count >= 5 && rateLimitCache[ip].lockoutUntil === 0) {
+        rateLimitCache[ip].lockoutUntil = now + 600000; // 10 minutes lockout
+        console.warn(`[SECURITY ALERT] IP ${ip} has been LOCKED OUT for 10 minutes (5 failed attempts).`);
+    } else if (count < 5) {
+        console.warn(`[SECURITY] Failed auth attempt from IP ${ip} (${count}/5)`);
+    }
+    return count;
+}
+
+function resetAttempts(ip) {
+    delete rateLimitCache[ip];
+}
+
+function secureCompare(clientKey) {
+    if (!clientKey || typeof clientKey !== 'string') return false;
+    const a = crypto.createHash('sha256').update(clientKey.trim()).digest();
+    const b = crypto.createHash('sha256').update(API_KEY).digest();
+    return crypto.timingSafeEqual(a, b);
+}
+
 // Verify API Key endpoint (public so UI can check if key is valid)
 app.post('/api/auth/verify', (req, res) => {
+    const ip = getClientIp(req);
+    
+    // 1. Check if IP is currently locked out
+    if (isRateLimited(ip)) {
+        return res.status(429).json({ success: false, error: 'Too many failed attempts. IP locked out for 10 minutes.' });
+    }
+
     const { key } = req.body;
-    if (key && key.trim() === API_KEY) {
+
+    // 2. Validate Key
+    if (secureCompare(key)) {
+        resetAttempts(ip);
         return res.json({ success: true, valid: true });
     }
-    return res.status(401).json({ success: false, error: 'Invalid API key' });
+    
+    // 3. Increment failure count
+    const currentAttempts = recordFailedAttempt(ip);
+    const remaining = Math.max(0, 5 - currentAttempts);
+
+    if (currentAttempts >= 5) {
+        return res.status(429).json({ success: false, error: 'Too many failed attempts. IP locked out for 10 minutes.' });
+    }
+
+    // Artificial timing jitter (200-400ms) to thwart automated brute-force scripts
+    setTimeout(() => {
+        return res.status(401).json({ success: false, error: `Invalid API key. ${remaining} attempt(s) remaining.` });
+    }, Math.floor(Math.random() * 200) + 150);
 });
 
 // Authentication Guard Middleware for Protected API routes
 function requireApiKey(req, res, next) {
+    const ip = getClientIp(req);
+    if (isRateLimited(ip)) {
+        return res.status(429).json({ error: 'Unauthorized: IP locked due to brute-force' });
+    }
+
     const clientKey = req.headers['x-api-key'] || (req.headers['authorization'] ? req.headers['authorization'].replace(/^Bearer\s+/i, '') : '');
-    if (!clientKey || clientKey.trim() !== API_KEY) {
+    
+    if (!secureCompare(clientKey)) {
+        recordFailedAttempt(ip);
         return res.status(401).json({ error: 'Unauthorized: Invalid or missing API key' });
     }
+    
+    resetAttempts(ip);
     next();
 }
 
@@ -305,6 +398,11 @@ app.listen(PORT, '0.0.0.0', () => {
         if (ip) console.log(`[Manager] Detected Public IP: ${ip}`);
     });
 });
+
+
+
+
+
 
 
 
