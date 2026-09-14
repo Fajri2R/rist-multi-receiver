@@ -1,0 +1,19 @@
+services:
+  rist-multi-receiver:
+    build: .
+    container_name: rist-multi-receiver
+    restart: unless-stopped
+    ports:
+      # Management Web UI and NOALBS Stats API
+      - "3000:3000/tcp"
+      # Input Ports for streamers (IRLBOX / IRLWhatever)
+      - "2030-2050:2030-2050/udp"
+      # Output Ports for OBS Studio
+      - "5556-5576:5556-5576/udp"
+    volumes:
+      - ./data:/app/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
