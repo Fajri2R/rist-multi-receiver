@@ -3,207 +3,842 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RIST Multi Receiver</title>
+  <title>RIST Multi Receiver Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; background:#0f1117; color:#e2e8f0; min-height:100vh; }
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(18, 24, 38, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover-border: rgba(99, 102, 241, 0.35);
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.25);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.3);
+      --danger: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
 
-    header { background:#161b22; border-bottom:1px solid #30363d; padding:16px 28px; display:flex; align-items:center; justify-content:space-between; }
-    header h1 { font-size:20px; font-weight:700; color:#58a6ff; letter-spacing:.5px; }
-    header span { font-size:12px; color:#8b949e; background:#0d1117; padding:4px 10px; border-radius:8px; border:1px solid #30363d; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
 
-    main { max-width:1100px; margin:0 auto; padding:28px 20px; }
+    /* Top Navigation */
+    header {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 14px 24px;
+    }
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+    .brand-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: #fff;
+    }
+    .brand h1 {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .brand span {
+      color: var(--accent);
+      font-weight: 800;
+    }
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pill {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+    }
 
-    .actions { display:flex; gap:12px; margin-bottom:28px; }
-    .btn { cursor:pointer; border:none; border-radius:8px; padding:10px 20px; font-size:14px; font-weight:600; transition:all .15s; }
-    .btn-primary { background:#238636; color:#fff; }
-    .btn-primary:hover { background:#2ea043; }
+    /* Main Container */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
 
-    .cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(360px,1fr)); gap:18px; }
-    .card { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; position:relative; }
-    .card.online { border-left:4px solid #2ea043; }
-    .card.offline { border-left:4px solid #f85149; }
+    /* Banner info */
+    .quick-info {
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.1), rgba(16, 185, 129, 0.05));
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .quick-info-text {
+      font-size: 13px;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .quick-info-text strong {
+      color: #818cf8;
+    }
+    .quick-info-text code {
+      background: rgba(0, 0, 0, 0.35);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #a5b4fc;
+    }
 
-    .card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-    .card-header .name { font-size:16px; font-weight:700; }
-    .status-dot { width:10px; height:10px; border-radius:50%; }
-    .status-dot.on { background:#2ea043; box-shadow:0 0 6px #2ea043; }
-    .status-dot.off { background:#f85149; }
+    /* Action bar */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .toolbar h2 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+    }
 
-    .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; margin-bottom:16px; }
-    .info-label { font-size:10px; text-transform:uppercase; color:#8b949e; letter-spacing:.5px; }
-    .info-value { font-size:13px; color:#c9d1d9; font-family:monospace; margin-top:2px; word-break:break-all; }
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid transparent;
+      user-select: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #fff;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--card-border);
+      color: var(--text-main);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .btn-danger-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      padding: 6px;
+      border-radius: 8px;
+    }
+    .btn-danger-ghost:hover {
+      color: var(--danger);
+      background: rgba(239, 68, 68, 0.1);
+    }
 
-    .metrics { display:flex; gap:12px; margin-bottom:16px; }
-    .metric-box { flex:1; background:#0d1117; border-radius:8px; padding:10px; text-align:center; }
-    .metric-box .val { font-size:18px; font-weight:700; color:#58a6ff; }
-    .metric-box .lbl { font-size:10px; color:#8b949e; margin-top:2px; }
+    /* Card Grid */
+    .stream-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+    }
 
-    .copy-row { display:flex; gap:8px; align-items:center; background:#0d1117; border-radius:8px; padding:8px 12px; margin-bottom:8px; font-size:12px; font-family:monospace; }
-    .copy-row span { flex:1; color:#8b949e; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .copy-btn { background:#30363d; border:none; color:#c9d1d9; border-radius:5px; padding:3px 8px; cursor:pointer; font-size:11px; flex-shrink:0; }
-    .copy-btn:hover { background:#58a6ff; color:#0d1117; }
-    .copy-row .url-label { color:#58a6ff; margin-right:6px; flex-shrink:0; font-weight:700; }
+    /* Stream Card */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 22px;
+      position: relative;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .card:hover {
+      border-color: var(--card-hover-border);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+    .card.is-live {
+      border-top: 3px solid var(--success);
+    }
+    .card.is-offline {
+      border-top: 3px solid rgba(255, 255, 255, 0.15);
+    }
 
-    .del-btn { position:absolute; top:14px; right:14px; background:transparent; border:1px solid #30363d; color:#8b949e; border-radius:6px; padding:3px 9px; cursor:pointer; font-size:12px; }
-    .del-btn:hover { border-color:#f85149; color:#f85149; }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .stream-name {
+      font-size: 16px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -0.2px;
+    }
+
+    /* Status Indicator */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .status-badge.live {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .status-badge.offline {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid var(--card-border);
+    }
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .status-badge.live .dot {
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite;
+    }
+    .status-badge.offline .dot {
+      background: #64748b;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Live Metrics Panel */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      padding: 12px 8px;
+    }
+    .metric-item {
+      text-align: center;
+    }
+    .metric-value {
+      font-size: 17px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: #fff;
+    }
+    .metric-value.highlight {
+      color: #818cf8;
+    }
+    .metric-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 3px;
+    }
+
+    /* Stream Config Info Grid */
+    .info-table {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 12px;
+    }
+    .info-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .info-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.4px;
+    }
+    .info-detail {
+      font-family: var(--font-mono);
+      color: #e2e8f0;
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Action Links (Copy Rows) */
+    .link-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .copy-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 7px 10px;
+      transition: border-color 0.15s;
+    }
+    .copy-box:hover {
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+    .copy-tag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+    .copy-tag.pub { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
+    .copy-tag.play { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+    .copy-tag.stats { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+
+    .copy-url {
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #94a3b8;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .btn-copy {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-copy:hover {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn-copy.copied {
+      background: var(--success);
+      color: #fff;
+      border-color: var(--success);
+    }
+
+    /* Empty state */
+    .empty-placeholder {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      background: var(--card-bg);
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+    }
+    .empty-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+      color: var(--text-muted);
+      opacity: 0.6;
+    }
+    .empty-placeholder h3 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .empty-placeholder p {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
 
     /* Modal */
-    .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:100; align-items:center; justify-content:center; }
-    .modal-bg.show { display:flex; }
-    .modal { background:#161b22; border:1px solid #30363d; border-radius:14px; padding:28px; width:420px; max-width:95vw; }
-    .modal h2 { margin-bottom:20px; font-size:18px; }
-    label { display:block; font-size:13px; color:#8b949e; margin-bottom:4px; }
-    input { width:100%; background:#0d1117; border:1px solid #30363d; color:#e2e8f0; padding:9px 12px; border-radius:8px; font-size:14px; margin-bottom:14px; }
-    input:focus { outline:none; border-color:#58a6ff; }
-    .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:6px; }
-    .btn-cancel { background:#21262d; color:#c9d1d9; }
-    .btn-cancel:hover { background:#30363d; }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal-card {
+      background: #111726;
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 440px;
+      padding: 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .modal-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      transition: border-color 0.2s;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .modal-foot {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 24px;
+    }
 
-    .empty { text-align:center; color:#8b949e; padding:60px 20px; font-size:15px; }
-    .empty span { font-size:40px; display:block; margin-bottom:12px; }
-    .noalbs-note { background:#161b22; border:1px solid #1f6feb; border-radius:10px; padding:14px 18px; margin-bottom:24px; font-size:13px; color:#58a6ff; }
-    .noalbs-note strong { color:#79c0ff; }
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 640px) {
+      main { padding: 20px 14px 60px; }
+      .stream-grid { grid-template-columns: 1fr; }
+      .quick-info { flex-direction: column; align-items: flex-start; }
+      .toolbar { flex-direction: column; align-items: flex-start; }
+    }
   </style>
 </head>
 <body>
+
+  <!-- Top Nav -->
   <header>
-    <h1>🎙️ RIST Multi Receiver</h1>
-    <span id="streamCount">Loading…</span>
+    <div class="nav-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+        </div>
+        <h1>RIST <span>Multi-Receiver</span></h1>
+      </div>
+      <div class="header-badges">
+        <div class="pill" id="totalStreams">0 Streams</div>
+        <div class="pill" id="liveStreams">0 Live</div>
+      </div>
+    </div>
   </header>
+
   <main>
-    <div class="noalbs-note">
-      <strong>NOALBS:</strong> <code>http://&lt;server&gt;:3000/stats/&lt;streamId&gt;</code> (Type: <code>OpenIRL</code>) | <strong>OBS Playback:</strong> Menggunakan enkripsi AES-128 Secret
+    <!-- NOALBS Integration Guide Bar -->
+    <div class="quick-info">
+      <div class="quick-info-text">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <span><strong>NOALBS Ready:</strong> Stats URL format is <code>http://&lt;server&gt;:3000/stats/&lt;streamId&gt;</code> (Type: <code>OpenIRL</code>)</span>
+      </div>
+      <div class="quick-info-text">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>OBS Playback: <strong>AES-128 Encrypted</strong></span>
+      </div>
     </div>
-    <div class="actions">
-      <button class="btn btn-primary" onclick="showModal()">+ Add Stream</button>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <h2>Active Streams</h2>
+      <button class="btn btn-primary" onclick="openModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Stream
+      </button>
     </div>
-    <div class="cards" id="cards"></div>
+
+    <!-- Grid -->
+    <div class="stream-grid" id="grid"></div>
   </main>
 
-  <div class="modal-bg" id="modalBg">
-    <div class="modal">
-      <h2>New RIST Stream</h2>
-      <label>Stream Name</label>
-      <input id="mName" type="text" placeholder="e.g. Camera 1" />
-      <label>Publisher Username</label>
-      <input id="mUser" type="text" placeholder="streamer" />
-      <label>Publisher Password</label>
-      <input id="mPass" type="text" placeholder="strongpassword123" />
-      <div class="modal-actions">
-        <button class="btn btn-cancel" onclick="hideModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="createStream()">Create</button>
+  <!-- Add Stream Modal -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal-card">
+      <h3 class="modal-title">Create RIST Channel</h3>
+      <p class="modal-sub">Allocate new UDP port pair & encryption credentials</p>
+
+      <div class="form-group">
+        <label>Channel Name</label>
+        <input type="text" id="streamName" class="form-control" placeholder="e.g. Camera IRL 1" autocomplete="off" />
+      </div>
+
+      <div class="form-group">
+        <label>Publisher Username</label>
+        <input type="text" id="pubUser" class="form-control" placeholder="user" autocomplete="off" />
+      </div>
+
+      <div class="form-group">
+        <label>Publisher Password</label>
+        <input type="text" id="pubPass" class="form-control" placeholder="secretpassword" autocomplete="off" />
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitStream()">Create Channel</button>
       </div>
     </div>
   </div>
 
+  <!-- Toast Notification Layer -->
+  <div class="toast-container" id="toastBox"></div>
+
   <script>
     let streams = [];
 
-    async function fetchStreams() {
-      const res = await fetch('/api/streams');
-      streams = await res.json();
-      render();
+    async function loadStreams() {
+      try {
+        const res = await fetch('/api/streams');
+        streams = await res.json();
+        renderGrid();
+      } catch (err) {
+        console.error('Failed to load streams:', err);
+      }
     }
 
     function formatBitrate(bps) {
-      if (!bps) return '—';
+      if (!bps) return '0 bps';
       if (bps >= 1000000) return `${(bps / 1000000).toFixed(2)} Mbps`;
       return `${(bps / 1000).toFixed(0)} kbps`;
     }
 
-    function render() {
-      const el = document.getElementById('cards');
-      document.getElementById('streamCount').textContent = `${streams.length} stream${streams.length !== 1 ? 's' : ''}`;
+    function renderGrid() {
+      const grid = document.getElementById('grid');
+      const totalLive = streams.filter(s => s.liveStats && s.liveStats.online).length;
+      
+      document.getElementById('totalStreams').textContent = `${streams.length} Stream${streams.length !== 1 ? 's' : ''}`;
+      document.getElementById('liveStreams').textContent = `${totalLive} Live`;
+
       if (!streams.length) {
-        el.innerHTML = '<div class="empty"><span>📡</span>No streams yet. Click "Add Stream" to begin.</div>';
+        grid.innerHTML = `
+          <div class="empty-placeholder">
+            <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            </svg>
+            <h3>No streams configured</h3>
+            <p>Get started by creating your first RIST incoming channel</p>
+            <button class="btn btn-primary" onclick="openModal()">+ Add New Stream</button>
+          </div>
+        `;
         return;
       }
 
-      el.innerHTML = streams.map(s => {
+      grid.innerHTML = streams.map(s => {
         const stats = s.liveStats || {};
-        const online = stats.online;
-        const bitrate = formatBitrate(stats.bitrate);
-        const rtt = stats.rtt ? `${stats.rtt} ms` : '—';
-        const hostname = window.location.hostname;
+        const isLive = Boolean(stats.online);
+        const host = window.location.hostname;
 
-        const publishUrl = `rist://${hostname}:${s.receivePort}?username=${s.username}&password=${s.password}`;
-        // Auth with AES-128 & Secret for OBS
-        const playUrl = `rist://${hostname}:${s.forwardPort}?cname=${s.streamId}&aes-type=128&secret=${s.playbackSecret}`;
-        const statsUrl = `http://${hostname}:3000/stats/${s.streamId}`;
+        const publishUrl = `rist://${host}:${s.receivePort}?username=${s.username}&password=${s.password}`;
+        const playUrl    = `rist://${host}:${s.forwardPort}?cname=${s.streamId}&aes-type=128&secret=${s.playbackSecret}`;
+        const statsUrl   = `http://${host}:3000/stats/${s.streamId}`;
+
+        const bitrateText = formatBitrate(stats.bitrate);
+        const rttText     = stats.rtt ? `${stats.rtt} ms` : '—';
+        const qualityText = isLive && stats.quality !== undefined ? `${stats.quality}%` : '—';
 
         return `
-          <div class="card ${online ? 'online' : 'offline'}">
-            <button class="del-btn" onclick="deleteStream('${s.id}')">✕</button>
+          <div class="card ${isLive ? 'is-live' : 'is-offline'}">
             <div class="card-header">
-              <span class="name">${s.name}</span>
-              <div class="status-dot ${online ? 'on' : 'off'}"></div>
-            </div>
-            <div class="metrics">
-              <div class="metric-box">
-                <div class="val">${bitrate}</div>
-                <div class="lbl">Bitrate</div>
+              <div class="card-title-group">
+                <span class="status-badge ${isLive ? 'live' : 'offline'}">
+                  <span class="dot"></span>
+                  ${isLive ? 'Live' : 'Offline'}
+                </span>
+                <span class="stream-name" title="${s.name}">${s.name}</span>
               </div>
-              <div class="metric-box">
-                <div class="val">${rtt}</div>
-                <div class="lbl">RTT</div>
+              <button class="btn btn-danger-ghost" title="Delete stream" onclick="removeStream('${s.id}')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+
+            <div class="metrics-row">
+              <div class="metric-item">
+                <div class="metric-value highlight">${bitrateText}</div>
+                <div class="metric-label">Bitrate</div>
               </div>
-              <div class="metric-box">
-                <div class="val">${online ? 'ONLINE' : 'OFFLINE'}</div>
-                <div class="lbl">Status</div>
+              <div class="metric-item">
+                <div class="metric-value">${rttText}</div>
+                <div class="metric-label">RTT</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-value">${qualityText}</div>
+                <div class="metric-label">Quality</div>
               </div>
             </div>
-            <div class="info-grid">
-              <div class="info-item"><div class="info-label">Receive Port</div><div class="info-value">${s.receivePort}/udp</div></div>
-              <div class="info-item"><div class="info-label">Forward Port</div><div class="info-value">${s.forwardPort}/udp</div></div>
-              <div class="info-item"><div class="info-label">Pub Auth</div><div class="info-value">${s.username} / ***</div></div>
-              <div class="info-item"><div class="info-label">Play Secret</div><div class="info-value">${s.playbackSecret ? s.playbackSecret.slice(0,8) + '...' : '—'}</div></div>
+
+            <div class="info-table">
+              <div class="info-cell">
+                <span class="info-title">Ingest (Recv)</span>
+                <span class="info-detail">${s.receivePort} / UDP</span>
+              </div>
+              <div class="info-cell">
+                <span class="info-title">Output (Play)</span>
+                <span class="info-detail">${s.forwardPort} / UDP</span>
+              </div>
+              <div class="info-cell">
+                <span class="info-title">Publisher Auth</span>
+                <span class="info-detail">${s.username} : ••••</span>
+              </div>
+              <div class="info-cell">
+                <span class="info-title">AES Token</span>
+                <span class="info-detail">${s.playbackSecret ? s.playbackSecret.slice(0,8) + '…' : '—'}</span>
+              </div>
             </div>
-            <div class="copy-row"><span class="url-label">PUB</span><span title="${publishUrl}">${publishUrl}</span><button class="copy-btn" onclick="copy('${publishUrl}')">Copy</button></div>
-            <div class="copy-row"><span class="url-label">PLAY (OBS)</span><span title="${playUrl}">${playUrl}</span><button class="copy-btn" onclick="copy('${playUrl}')">Copy</button></div>
-            <div class="copy-row"><span class="url-label">STATS</span><span title="${statsUrl}">${statsUrl}</span><button class="copy-btn" onclick="copy('${statsUrl}')">Copy</button></div>
+
+            <div class="link-group">
+              <div class="copy-box">
+                <span class="copy-tag pub">PUB</span>
+                <span class="copy-url" title="${publishUrl}">${publishUrl}</span>
+                <button class="btn-copy" onclick="copyText('${publishUrl}', this)">Copy</button>
+              </div>
+              <div class="copy-box">
+                <span class="copy-tag play">OBS</span>
+                <span class="copy-url" title="${playUrl}">${playUrl}</span>
+                <button class="btn-copy" onclick="copyText('${playUrl}', this)">Copy</button>
+              </div>
+              <div class="copy-box">
+                <span class="copy-tag stats">STATS</span>
+                <span class="copy-url" title="${statsUrl}">${statsUrl}</span>
+                <button class="btn-copy" onclick="copyText('${statsUrl}', this)">Copy</button>
+              </div>
+            </div>
           </div>
         `;
       }).join('');
     }
 
-    async function createStream() {
-      const name = document.getElementById('mName').value.trim();
-      const username = document.getElementById('mUser').value.trim();
-      const password = document.getElementById('mPass').value.trim();
-      if (!name || !username || !password) return alert('Please fill all fields.');
-      await fetch('/api/streams', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, username, password }) });
-      hideModal();
-      await fetchStreams();
+    async function submitStream() {
+      const name = document.getElementById('streamName').value.trim();
+      const username = document.getElementById('pubUser').value.trim();
+      const password = document.getElementById('pubPass').value.trim();
+
+      if (!name || !username || !password) {
+        showToast('Please fill in all fields', 'warning');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/streams', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, username, password })
+        });
+        if (res.ok) {
+          showToast(`Stream "${name}" created!`, 'success');
+          closeModal();
+          await loadStreams();
+        }
+      } catch (e) {
+        showToast('Failed to create stream', 'danger');
+      }
     }
 
-    async function deleteStream(id) {
-      if (!confirm('Delete this stream?')) return;
-      await fetch(`/api/streams/${id}`, { method: 'DELETE' });
-      await fetchStreams();
+    async function removeStream(id) {
+      if (!confirm('Are you sure you want to delete this channel?')) return;
+      try {
+        const res = await fetch(`/api/streams/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          showToast('Channel removed', 'info');
+          await loadStreams();
+        }
+      } catch (e) {
+        showToast('Failed to delete channel', 'danger');
+      }
     }
 
-    function copy(text) {
-      navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!'));
+    function copyText(text, btnElement) {
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = btnElement.textContent;
+        btnElement.textContent = '✓ Copied';
+        btnElement.classList.add('copied');
+        showToast('URL copied to clipboard!', 'success');
+        setTimeout(() => {
+          btnElement.textContent = originalText;
+          btnElement.classList.remove('copied');
+        }, 1500);
+      });
     }
 
-    function showModal() {
-      document.getElementById('modalBg').classList.add('show');
+    function showToast(msg, type = 'info') {
+      const box = document.getElementById('toastBox');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = msg;
+      box.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = 'all 0.2s ease';
+        setTimeout(() => toast.remove(), 200);
+      }, 2500);
     }
 
-    function hideModal() {
-      document.getElementById('modalBg').classList.remove('show');
-      document.getElementById('mName').value = '';
-      document.getElementById('mUser').value = '';
-      document.getElementById('mPass').value = '';
+    function openModal() {
+      document.getElementById('addModal').classList.add('open');
+      document.getElementById('streamName').focus();
     }
 
-    document.getElementById('modalBg').addEventListener('click', (e) => {
-      if (e.target === document.getElementById('modalBg')) hideModal();
+    function closeModal() {
+      document.getElementById('addModal').classList.remove('open');
+      document.getElementById('streamName').value = '';
+      document.getElementById('pubUser').value = '';
+      document.getElementById('pubPass').value = '';
+    }
+
+    document.getElementById('addModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('addModal')) closeModal();
     });
 
-    fetchStreams();
-    setInterval(fetchStreams, 3000);
+    loadStreams();
+    setInterval(loadStreams, 2500);
   </script>
 </body>
 </html>
