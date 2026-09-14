@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
+const fs = require('fs');
 const os = require('os');
 const https = require('https');
 const config = require('./config');
@@ -8,9 +9,45 @@ const store = require('./services/streamStore');
 const procManager = require('./services/processManager');
 const statsCollector = require('./services/statsCollector');
 
+// ==========================================
+// API KEY AUTHENTICATION INITIALIZATION
+// ==========================================
+const apiKeyPath = path.join(__dirname, 'data/.apikey');
+let API_KEY = '';
+
+if (fs.existsSync(apiKeyPath)) {
+    API_KEY = fs.readFileSync(apiKeyPath, 'utf8').trim();
+} else {
+    // Generate secure 32-character random hex API key
+    API_KEY = crypto.randomBytes(16).toString('hex');
+    fs.writeFileSync(apiKeyPath, API_KEY, 'utf8');
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Verify API Key endpoint (public so UI can check if key is valid)
+app.post('/api/auth/verify', (req, res) => {
+    const { key } = req.body;
+    if (key && key.trim() === API_KEY) {
+        return res.json({ success: true, valid: true });
+    }
+    return res.status(401).json({ success: false, error: 'Invalid API key' });
+});
+
+// Authentication Guard Middleware for Protected API routes
+function requireApiKey(req, res, next) {
+    const clientKey = req.headers['x-api-key'] || (req.headers['authorization'] ? req.headers['authorization'].replace(/^Bearer\s+/i, '') : '');
+    if (!clientKey || clientKey.trim() !== API_KEY) {
+        return res.status(401).json({ error: 'Unauthorized: Invalid or missing API key' });
+    }
+    next();
+}
+
+// Protect all /api/streams and /api/system-info routes
+app.use('/api/streams', requireApiKey);
+app.use('/api/system-info', requireApiKey);
 
 let streams = store.getAll();
 
@@ -217,12 +254,18 @@ app.get('/stats/:streamId', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n========================================================`);
+    console.log(`🔐 RIST MULTI-RECEIVER MANAGEMENT API KEY:`);
+    console.log(`   ${API_KEY}`);
+    console.log(`   (Saved in ./data/.apikey)`);
+    console.log(`========================================================\n`);
     console.log(`[Manager] Server running on http://0.0.0.0:${PORT}`);
     console.log(`[Manager] Added OpenIRL NOALBS stats proxy layer.`);
     fetchPublicIp().then(ip => {
         if (ip) console.log(`[Manager] Detected Public IP: ${ip}`);
     });
 });
+
 
 
 
