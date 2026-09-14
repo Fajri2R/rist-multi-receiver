@@ -1,4 +1,4 @@
-services:
+﻿services:
   rist-multi-receiver:
     build: .
     container_name: rist-multi-receiver
@@ -7,7 +7,7 @@ services:
       - HOST_IP=${HOST_IP:-}
     ports:
       # Management Web UI and NOALBS Stats API
-      - "3000:3000/tcp"
+      - "${PORT:-3000}:3000/tcp"
       # Input Ports for streamers (IRLBOX / IRLWhatever)
       - "2030-2050:2030-2050/udp"
       # Output Ports for OBS Studio
@@ -19,3 +19,4 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
