@@ -8,6 +8,8 @@ Dibangun di atas engine [libRIST](https://code.videolan.org/rist/librist) (v0.2.
 
 ## 🌟 Fitur Utama
 
+- **Management API Key Protection**: Dashboard dan seluruh REST API dilindungi oleh file `.apikey` rahasia 32-karakter. Hanya pemilik server yang dapat mengakses, mengedit, atau membuat stream.
+
 - **Multiple Channels Dinamis**: Mengalokasikan sepasang port (Ingest & Play) baru secara otomatis untuk setiap stream yang Anda buat via UI.
 - **Auto IP Switcher**: Deteksi otomatis IP Publik (WAN) dan LAN. Ganti semua URL RIST di dashboard antara Public, LAN, Localhost, atau Custom DDNS hanya dengan satu klik.
 - **Keamanan Dua Lapis (Dual-Auth)**:
@@ -191,6 +193,7 @@ Masukkan konfigurasi berikut pada `config.json` NOALBS Anda:
 Anda dapat memodifikasi batas rentang port, RTT minimum, maupun Profile RIST dengan mengedit file `config.js` sebelum me-rebuild Docker.
 - `ristProfile: "1"` = Main Profile (Default standar IRLBOX/Moblin)
 - `ristProfile: "2"` = Advanced Profile
+
 
 
 
