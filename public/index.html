@@ -167,7 +167,90 @@
       width: 170px;
     }
 
-        /* Auth Lockscreen Overlay */
+            /* Modern Header Badges & Pill Styling */
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: #cbd5e1;
+      font-family: var(--font-sans);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+    .pill svg {
+      width: 14px;
+      height: 14px;
+      opacity: 0.75;
+    }
+    .pill:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    
+    /* Live Pill Dynamics */
+    .pill-live {
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .pill-live.is-active {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #34d399;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);
+    }
+    .pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #64748b;
+      transition: all 0.3s ease;
+    }
+    .pill-live.is-active .pill-dot {
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse 1.8s infinite;
+    }
+
+    /* Auth Logout Pill Button */
+    .header-auth-btn {
+      background: rgba(239, 68, 68, 0.08);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 9999px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-sans);
+      transition: all 0.2s ease;
+    }
+    .header-auth-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+    }
+    .header-auth-btn:hover {
+      background: #ef4444;
+      color: #ffffff;
+      border-color: #ef4444;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+      transform: translateY(-1px);
+    }
+
+    /* Auth Lockscreen Overlay */
     .auth-overlay {
       position: fixed;
       inset: 0;
@@ -709,11 +792,17 @@
       </div>
 
             <div class="header-badges">
-        <div class="pill" id="totalStreams">0 Channels</div>
-        <div class="pill" id="liveStreams"><span class="pill-dot"></span>0 Live</div>
-        <button class="header-auth-btn" onclick="logout()" title="Logout / Clear API Key">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-          Logout
+        <div class="pill" id="totalStreams" title="Total Configured RIST Channels">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+          <span id="totalStreamsVal">0 Channels</span>
+        </div>
+        <div class="pill pill-live" id="liveStreams" title="Active Streams Status">
+          <span class="pill-dot"></span>
+          <span id="liveStreamsVal">0 Live</span>
+        </div>
+        <button class="header-auth-btn" onclick="logout()" title="Lock dashboard & clear API key session">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          Lock
         </button>
       </div>
     </div>
@@ -1014,14 +1103,18 @@
       const grid = document.getElementById('grid');
       const totalLive = streams.filter(s => s.liveStats && s.liveStats.online).length;
       
-            document.getElementById('totalStreams').textContent = `${streams.length} Channel${streams.length !== 1 ? 's' : ''}`;
+            const totalEl = document.getElementById('totalStreamsVal');
+      if (totalEl) totalEl.textContent = `${streams.length} Channel${streams.length !== 1 ? 's' : ''}`;
       
       const livePill = document.getElementById('liveStreams');
-      livePill.innerHTML = `<span class="pill-dot"></span>${totalLive} Live`;
-      if (totalLive > 0) {
-        livePill.classList.add('is-active');
-      } else {
-        livePill.classList.remove('is-active');
+      const liveVal = document.getElementById('liveStreamsVal');
+      if (liveVal) liveVal.textContent = `${totalLive} Live`;
+      if (livePill) {
+        if (totalLive > 0) {
+          livePill.classList.add('is-active');
+        } else {
+          livePill.classList.remove('is-active');
+        }
       }
 
       if (!streams.length) {
@@ -1232,6 +1325,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 
