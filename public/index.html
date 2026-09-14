@@ -287,6 +287,52 @@
       transform: translateY(-1px);
     }
 
+    /* Start / Stop Toggle Button */
+    .btn-toggle {
+      background: transparent;
+      color: var(--text-muted);
+      padding: 6px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .btn-toggle.is-active:hover {
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.12);
+    }
+    .btn-toggle.is-inactive {
+      color: var(--success);
+    }
+    .btn-toggle.is-inactive:hover {
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.12);
+    }
+
+    /* Card inactive state */
+    .card.is-paused {
+      border-top: 3px solid rgba(245, 158, 11, 0.6);
+      opacity: 0.7;
+    }
+    .status-badge.paused {
+      background: rgba(245, 158, 11, 0.12);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .status-badge.paused .dot {
+      background: #f59e0b;
+    }
+
+    .form-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: -10px;
+      margin-bottom: 14px;
+    }
+
     /* Auth Lockscreen Overlay */
     .auth-overlay {
       position: fixed;
@@ -884,6 +930,7 @@
       <div class="form-group">
         <label>Publisher Password</label>
         <input type="text" id="pubPass" class="form-control" placeholder="secretpassword" autocomplete="off" />
+        <div class="form-hint">Allowed: letters, numbers, - _ . !</div>
       </div>
 
       <div class="modal-foot">
@@ -1257,11 +1304,28 @@
       const name = document.getElementById('streamName').value.trim();
       const username = document.getElementById('pubUser').value.trim();
       const password = document.getElementById('pubPass').value.trim();
-      if (!name || !username || !password) { showToast('Please fill in all fields', 'warning'); return; }
+            if (!name || !username || !password) { showToast('Please fill in all fields', 'warning'); return; }
+      if (!/^[a-zA-Z0-9_\-\.\!]+$/.test(username) || !/^[a-zA-Z0-9_\-\.\!]+$/.test(password)) {
+        showToast('Username/Password: only letters, numbers, - _ . ! are allowed', 'warning');
+        return;
+      }
       try {
         const res = await apiFetch('/api/streams', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, username, password }) });
         if (res.ok) { showToast(`Channel "${name}" created!`, 'success'); closeModal(); await loadStreams(); }
       } catch (e) { showToast('Failed to create channel', 'danger'); }
+    }
+
+        async function toggleStream(id, activate) {
+      try {
+        const res = await apiFetch('/api/streams/' + id + '/status', {
+          method: 'PATCH',
+          body: JSON.stringify({ active: activate })
+        });
+        if (res.ok) {
+          showToast(activate ? 'Stream Started!' : 'Stream Paused', activate ? 'success' : 'info');
+          await loadStreams();
+        }
+      } catch (e) { showToast('Failed to toggle stream', 'danger'); }
     }
 
     async function removeStream(id) {
@@ -1389,6 +1453,7 @@
   </script>
 </body>
 </html>
+
 
 
 

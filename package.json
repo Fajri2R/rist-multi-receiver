@@ -4,17 +4,9 @@
   "description": "RIST Multi-Stream Receiver with Authentication and Statistics Integration",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "uuid": "^10.0.0",
-    "ws": "^8.18.0",
-    "better-sqlite3": "^11.3.0",
-    "crypto": "^1.0.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.4"
+    "express": "^4.19.2"
   }
 }

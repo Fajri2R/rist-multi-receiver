@@ -351,21 +351,37 @@ app.get('/api/streams', (req, res) => {
     res.json(withStats);
 });
 
+function isValidRistCred(str) {
+    // Only allow alphanumeric and basic safe symbols to prevent RIST URL injection
+    return /^[a-zA-Z0-9_\-\.\!]+$/.test(str);
+}
+
 app.post('/api/streams', async (req, res) => {
-    const { name, username, password } = req.body;
+    let { name, username, password } = req.body;
+    
+    // Fallbacks
+    name = (name || '').trim() || `Stream-${crypto.randomUUID().substring(0,6)}`;
+    username = (username || '').trim() || 'user';
+    password = (password || '').trim() || 'pass';
+
+    // RIST URL Parameter Validation
+    if (!isValidRistCred(username) || !isValidRistCred(password)) {
+        return res.status(400).json({ error: 'Username and password can only contain letters, numbers, hyphens (-), underscores (_), dots (.), and exclamation marks (!).' });
+    }
+
     const streamId = crypto.randomUUID().replace(/-/g, '');
     const ports = await allocatePorts();
     
     const newStream = {
         id: crypto.randomUUID(),
         streamId,
-        name: name || `Stream-${streamId.substring(0,6)}`,
+        name: name,
         receivePort: ports.rec,
         forwardPort: ports.fwd,
         internalPort: ports.internal,
         statsPort: ports.stat,
-        username: username || 'user',
-        password: password || 'pass',
+        username: username,
+        password: password,
         playbackSecret: crypto.randomBytes(16).toString('hex'),
         createdAt: new Date().toISOString(),
         active: true
@@ -386,20 +402,47 @@ app.put('/api/streams/:id', (req, res) => {
     
     const { username, password } = req.body;
     const stream = streams[streamIdx];
+
+    if (username && !isValidRistCred(username)) return res.status(400).json({ error: 'Invalid characters in username.' });
+    if (password && !isValidRistCred(password)) return res.status(400).json({ error: 'Invalid characters in password.' });
     
-    // Hentikan proses lama
     procManager.stopStream(stream.streamId);
     statsCollector.stopCollecting(stream.streamId);
     
-    // Perbarui data
-    if (username !== undefined) stream.username = username;
-    if (password !== undefined) stream.password = password;
+    if (username !== undefined) stream.username = username.trim();
+    if (password !== undefined) stream.password = password.trim();
     
     store.saveAll(streams);
     
-    // Mulai proses baru dengan kredensial baru
-    procManager.startStream(stream);
-    statsCollector.startCollecting(stream);
+    // Restart only if it's supposed to be active
+    if (stream.active) {
+        procManager.startStream(stream);
+        statsCollector.startCollecting(stream);
+    }
+    
+    res.json(stream);
+});
+
+// Toggle Stream State (Start / Pause)
+app.patch('/api/streams/:id/status', (req, res) => {
+    const streamIdx = streams.findIndex(s => s.id === req.params.id);
+    if (streamIdx === -1) return res.status(404).json({error: 'Not found'});
+    
+    const { active } = req.body;
+    const stream = streams[streamIdx];
+    
+    if (typeof active === 'boolean') {
+        stream.active = active;
+        store.saveAll(streams);
+        
+        if (active) {
+            procManager.startStream(stream);
+            statsCollector.startCollecting(stream);
+        } else {
+            procManager.stopStream(stream.streamId);
+            statsCollector.stopCollecting(stream.streamId);
+        }
+    }
     
     res.json(stream);
 });
@@ -435,6 +478,7 @@ app.listen(PORT, '0.0.0.0', () => {
         if (ip) console.log(`[Manager] Detected Public IP: ${ip}`);
     });
 });
+
 
 
 
