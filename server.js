@@ -37,10 +37,12 @@ function allocatePorts() {
     let internal = config.internalPortStart;
     let stat = config.statsPortStart;
 
+    // RIST Main profile requires EVEN ports and takes port + 1 for RTCP feedback
+    // So ports MUST increment by 2 to prevent collision!
     streams.forEach(s => {
-        if (s.receivePort >= rec) rec = s.receivePort + 1;
-        if (s.forwardPort >= fwd) fwd = s.forwardPort + 1;
-        if (s.internalPort >= internal) internal = s.internalPort + 1;
+        if (s.receivePort >= rec) rec = s.receivePort + 2;
+        if (s.forwardPort >= fwd) fwd = s.forwardPort + 2;
+        if (s.internalPort >= internal) internal = s.internalPort + 2;
         if (s.statsPort >= stat) stat = s.statsPort + 1;
     });
     return { rec, fwd, internal, stat };
@@ -201,5 +203,6 @@ app.listen(PORT, '0.0.0.0', () => {
         if (ip) console.log(`[Manager] Detected Public IP: ${ip}`);
     });
 });
+
 
 

@@ -171,8 +171,18 @@ Masukkan konfigurasi berikut pada `config.json` NOALBS Anda:
 | Port Range  | Protokol | Keterangan                                       |
 |-------------|----------|--------------------------------------------------|
 | 3000        | TCP      | Web Dashboard UI, REST API, & Endpoint NOALBS    |
-| 2030–2050   | UDP      | **RIST Input** (dari IRLBOX/Moblin ke Server)    |
+| 2030–2050   | UDP      | **RIST Input** (Kamera/IRLBOX ke Server)         |
 | 5556–5576   | UDP      | **RIST Output** (di-forward ke OBS Studio)       |
+
+> **PENTING (Spesifikasi Port RIST):**
+> Protokol RIST Main Profile menggunakan **sepasang port UDP (Port Pair)** untuk setiap channel:
+> - Port **Genap** untuk aliran data video (RTP).
+> - Port **Ganjil** (Port + 1) untuk feedback kontrol RTCP (handshake, RTT, & recovery packet loss).
+> 
+> Karena itu, sistem ini otomatis mengalokasikan port melompat 2 nomor secara aman:
+> - **Channel 1:** Port Ingest `2030` (Data: 2030, RTCP: 2031) -> Forward OBS `5556` (RTCP: 5557)
+> - **Channel 2:** Port Ingest `2032` (Data: 2032, RTCP: 2033) -> Forward OBS `5558` (RTCP: 5559)
+> - **Channel 3:** Port Ingest `2034` (Data: 2034, RTCP: 2035) -> Forward OBS `5560` (RTCP: 5561)
 
 ---
 
@@ -181,3 +191,4 @@ Masukkan konfigurasi berikut pada `config.json` NOALBS Anda:
 Anda dapat memodifikasi batas rentang port, RTT minimum, maupun Profile RIST dengan mengedit file `config.js` sebelum me-rebuild Docker.
 - `ristProfile: "1"` = Main Profile (Default standar IRLBOX/Moblin)
 - `ristProfile: "2"` = Advanced Profile
+
