@@ -361,17 +361,41 @@ function resolveHostIp() {
     });
 }
 
+// Optional public hostname used in generated RIST URLs. It must be a
+// DNS-only (unproxied) record pointing at this server's public IP, because
+// Cloudflare's HTTP proxy does not carry UDP.
+const PUBLIC_HOST = (process.env.RIST_PUBLIC_HOST || '').trim();
+let publicHostCheck = { at: 0, ok: false };
+
+function verifyPublicHost(publicIp) {
+    if (!PUBLIC_HOST || !publicIp) return Promise.resolve(false);
+    if (publicHostCheck.at && Date.now() - publicHostCheck.at < 300000) {
+        return Promise.resolve(publicHostCheck.ok);
+    }
+    return new Promise((resolve) => {
+        dns.resolve4(PUBLIC_HOST, (err, addrs) => {
+            const ok = !err && Array.isArray(addrs) && addrs.indexOf(publicIp) !== -1;
+            publicHostCheck = { at: Date.now(), ok };
+            resolve(ok);
+        });
+    });
+}
+
 // REST API: System info (IP detection)
 app.get('/api/system-info', async (req, res) => {
     const publicIp = await fetchPublicIp();
     const localIps = getLocalIps();
     const hostDockerIp = await resolveHostIp();
     const reqHost = req.headers.host ? req.headers.host.split(':')[0] : 'localhost';
+    const publicHost = PUBLIC_HOST || null;
+    const publicHostVerified = publicHost ? await verifyPublicHost(publicIp) : false;
     res.json({
         publicIp: publicIp || null,
         localIps,
         hostDockerIp: hostDockerIp || null,
-        requestHost: reqHost
+        requestHost: reqHost,
+        publicHost,
+        publicHostVerified
     });
 });
 
@@ -388,6 +412,15 @@ function isValidRistCred(str) {
     return /^[a-zA-Z0-9_\-\.\!]+$/.test(str);
 }
 
+// Channel names are rendered into the dashboard, so reject markup characters
+// at the source instead of relying on the client to escape them.
+function isValidChannelName(str) {
+    return typeof str === 'string'
+        && str.trim().length > 0
+        && str.trim().length <= 48
+        && /^[^<>"'`&\\]+$/.test(str.trim());
+}
+
 app.post('/api/streams', async (req, res) => {
     let { name, username, password } = req.body;
     
@@ -399,6 +432,10 @@ app.post('/api/streams', async (req, res) => {
     // RIST URL Parameter Validation
     if (!isValidRistCred(username) || !isValidRistCred(password)) {
         return res.status(400).json({ error: 'Username and password can only contain letters, numbers, hyphens (-), underscores (_), dots (.), and exclamation marks (!).' });
+    }
+
+    if (!isValidChannelName(name)) {
+        return res.status(400).json({ error: 'Channel name must be 1-48 characters and cannot contain < > " \' ` & or backslash.' });
     }
 
     const streamId = crypto.randomUUID().replace(/-/g, '');

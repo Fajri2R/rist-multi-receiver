@@ -5,6 +5,7 @@
     restart: unless-stopped
     environment:
       - HOST_IP=${HOST_IP:-}
+      - RIST_PUBLIC_HOST=${RIST_PUBLIC_HOST:-live.ashveil.my.id}
     ports:
       # Management Web UI and NOALBS Stats API.
       # Bound to loopback on purpose: the public entry point is

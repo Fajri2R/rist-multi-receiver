@@ -576,7 +576,9 @@
     /* Card Grid */
     .stream-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      /* auto-fit collapses empty tracks, so one channel uses the full row
+         instead of leaving dead columns to its right. */
+      grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
       gap: 20px;
     }
     .card {
@@ -667,7 +669,8 @@
     /* Info Table */
     .info-table {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      /* 4 across on a wide card, 2 when the card narrows. */
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 10px 14px;
       background: rgba(255, 255, 255, 0.02);
       border-radius: 10px;
@@ -722,7 +725,10 @@
       font-size: 11.5px;
       color: #cbd5e1;
       line-height: 1.45;
-      word-break: break-all;
+      /* Break only where needed: urls split at separators instead of
+         mid-word, unless a single token exceeds the whole box. */
+      overflow-wrap: anywhere;
+      word-break: normal;
       white-space: normal;
       user-select: all;
     }
@@ -823,8 +829,21 @@
     @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
     @media (max-width: 860px) {
+      header { padding: 12px 14px; }
       header .nav-container { flex-direction: column; align-items: stretch; gap: 12px; }
-      .ip-selector-bar { justify-content: flex-start; overflow-x: auto; }
+      .brand { min-width: 0; }
+      .brand-text { min-width: 0; }
+      .brand-text h1 { font-size: 15px; flex-wrap: wrap; row-gap: 2px; }
+      /* The selector must shrink with the viewport. A fixed min-width here
+         pushed the whole header past a 360px screen. */
+      .ip-selector-bar { justify-content: space-between; flex-wrap: wrap; min-width: 0; overflow-x: visible; }
+      .ip-select { flex: 1 1 0; min-width: 0; width: 100%; }
+      .ip-custom-field { flex: 1 1 160px; min-width: 0; }
+      .header-badges { min-width: 0; flex-wrap: wrap; justify-content: flex-start; }
+      /* Touch targets: icon and Copy controls were 23-27px tall on a phone. */
+      .btn-copy { min-height: 36px; padding: 8px 12px; }
+      .btn-icon-ghost { min-width: 40px; min-height: 40px; }
+      .header-auth-btn { min-height: 36px; }
       main { padding: 20px 14px 60px; }
       .stream-grid { grid-template-columns: 1fr; }
       .quick-info { flex-direction: column; align-items: flex-start; }
@@ -871,11 +890,11 @@
       
             <!-- ACTIVE IP DROPDOWN ONLY -->
       <div class="ip-selector-bar">
-        <span class="ip-label">Active IP:</span>
+        <span class="ip-label">Stream host:</span>
         <select id="ipSelect" class="ip-select" onchange="onIpSelectChange()">
-          <option value="detecting">Detecting IPs...</option>
+          <option value="detecting">Detecting…</option>
         </select>
-        <input type="text" id="ipCustomInput" class="ip-custom-field" placeholder="e.g. 192.168.1.100" oninput="onCustomIpInput()" />
+        <input type="text" id="ipCustomInput" class="ip-custom-field" placeholder="hostname or IP, e.g. 100.x.y.z (Tailscale)" oninput="onCustomIpInput()" />
       </div>
 
             <div class="header-badges">
@@ -899,11 +918,11 @@
     <div class="quick-info">
       <div class="quick-info-text">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-        <span><strong>NOALBS Ready:</strong> Stats URL format is <code>http://&lt;active-ip&gt;:&lt;dashboard-port&gt;/stats/&lt;streamId&gt;</code></span>
+        <span><strong>NOALBS Ready:</strong> Stats URL auto-matches dashboard origin (<code>/stats/&lt;streamId&gt;</code>)</span>
       </div>
       <div class="quick-info-text">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span>OBS Playback: <strong>AES-128 Encrypted</strong></span>
+        <span>Stream Ingest/Playback: <strong id="ristHostStatus">Checking DNS-only domain…</strong></span>
       </div>
     </div>
 
@@ -985,10 +1004,11 @@
   <div class="toast-container" id="toastBox"></div>
 
   <script>
+    const FALLBACK_HOST = 'live.ashveil.my.id';
     let streams = [];
-    let systemIps = { publicIp: '', localIp: '', requestHost: '' };
+    let lastStreamsSig = '';
+    let systemIps = { publicIp: '', publicHost: '', publicHostVerified: false, requestHost: '' };
     let currentSelectedIp = '';
-    let currentSelectedType = 'public';
     let currentApiKey = localStorage.getItem('rist_api_key') || '';
 
     // Wrap fetch API to automatically inject API key
@@ -1114,53 +1134,63 @@
         const res = await apiFetch('/api/system-info');
         const data = await res.json();
         systemIps.publicIp = data.publicIp || '';
-
-        // Check for injected Host IP (from Docker host.docker.internal or .env)
-        if (data.hostDockerIp && data.hostDockerIp !== '127.0.0.1' && !data.hostDockerIp.startsWith('192.168.65.')) {
-          systemIps.localIp = data.hostDockerIp;
-        } else {
-          // Prefer non-Docker bridges (172.16 - 172.31)
-          const isDocker = (addr) => {
-            const p = addr.split('.').map(Number);
-            return p[0] === 172 && p[1] >= 16 && p[1] <= 31;
-          };
-          const realLan = data.localIps.find(n => !isDocker(n.address));
-          systemIps.localIp = realLan ? realLan.address : data.localIps[0].address;
-        }
-
-        // If accessed via actual browser hostname that is not localhost, prefer it
-        // This acts as the final overriding truth because if user can access the UI, that IP is 100% correct!
-        const browserHost = window.location.hostname;
-        const isDockerHost = (addr) => {
-            const p = addr.split('.').map(Number);
-            return p[0] === 172 && p[1] >= 16 && p[1] <= 31;
-        };
-        if (browserHost !== 'localhost' && browserHost !== '127.0.0.1' && !isDockerHost(browserHost)) {
-          systemIps.localIp = browserHost;
-        }
+        systemIps.publicHost = data.publicHost || '';
+        systemIps.publicHostVerified = Boolean(data.publicHostVerified);
       } catch (err) {
-        systemIps.localIp = window.location.hostname;
+        systemIps.publicIp = '';
+        systemIps.publicHost = '';
+        systemIps.publicHostVerified = false;
       }
 
+      updateRistHostStatus();
       populateIpSelect();
+    }
+
+    // Tell the operator which host is actually being published. The domain is
+    // only trustworthy while its record still resolves straight to this server.
+    function updateRistHostStatus() {
+      const el = document.getElementById('ristHostStatus');
+      if (!el) return;
+
+      if (systemIps.publicHostVerified) {
+        el.textContent = `${systemIps.publicHost} (DNS only, verified)`;
+        el.style.color = '#34d399';
+        return;
+      }
+
+      if (systemIps.publicHost) {
+        el.textContent = `${systemIps.publicHost} does not resolve to ${systemIps.publicIp || 'this server'} — using raw IP`;
+        el.style.color = '#fbbf24';
+        return;
+      }
+
+      el.textContent = systemIps.publicIp ? `raw IP ${systemIps.publicIp}` : 'unknown host';
+      el.style.color = '#fbbf24';
+    }
+
+    function usableHosts() {
+      const options = [];
+
+      // Domain first, but only when the DNS-only record is actually correct.
+      if (systemIps.publicHostVerified && systemIps.publicHost) {
+        options.push({ value: systemIps.publicHost, label: `Domain (${systemIps.publicHost})` });
+      }
+      if (systemIps.publicIp) {
+        options.push({ value: systemIps.publicIp, label: `Public IP (${systemIps.publicIp})` });
+      }
+      if (!options.length && FALLBACK_HOST) {
+        options.push({ value: FALLBACK_HOST, label: `Domain (${FALLBACK_HOST})` });
+      }
+
+      options.push({ value: 'custom', label: 'Custom host…' });
+      return options;
     }
 
     function populateIpSelect() {
       const select = document.getElementById('ipSelect');
       select.innerHTML = '';
 
-      const options = [];
-
-      if (systemIps.publicIp) {
-        options.push({ value: systemIps.publicIp, label: `🌐 Public IP (${systemIps.publicIp})` });
-      }
-
-      if (systemIps.localIp && !systemIps.localIp.startsWith('192.168.65.')) {
-        options.push({ value: systemIps.localIp, label: `🏠 LAN IP (${systemIps.localIp})` });
-      }
-
-      options.push({ value: '127.0.0.1', label: '💻 Localhost (127.0.0.1)' });
-      options.push({ value: 'custom', label: '✏️ Custom Domain / IP...' });
+      const options = usableHosts();
 
       options.forEach(opt => {
         const el = document.createElement('option');
@@ -1169,21 +1199,34 @@
         select.appendChild(el);
       });
 
-      // Restore saved preference
+      // Restore saved preference, but never select a host that is no longer offered.
       const savedIp = localStorage.getItem('rist_active_ip');
       const savedCustom = localStorage.getItem('rist_custom_ip') || '';
       if (savedCustom) document.getElementById('ipCustomInput').value = savedCustom;
 
-      if (savedIp === 'custom') {
-        select.value = 'custom';
-      } else if (savedIp && options.some(o => o.value === savedIp)) {
+      if (savedIp === 'custom' || (savedIp && options.some(o => o.value === savedIp))) {
         select.value = savedIp;
       } else {
-        // Default to Public or LAN
+        // Domain first: it survives an IP change and keeps the DNS-only record honest.
         select.value = options[0].value;
       }
 
       onIpSelectChange();
+    }
+
+    // Never fall back to the dashboard hostname: that one is Cloudflare-proxied
+    // and cannot carry RIST UDP. Prefer the verified DNS-only domain.
+    function defaultStreamHost() {
+      return systemIps.publicHostVerified && systemIps.publicHost
+        ? systemIps.publicHost
+        : (systemIps.publicIp || FALLBACK_HOST);
+    }
+
+    function normalizeCustomHost(value, input) {
+      const host = value.trim();
+      const valid = !host || (host.length <= 253 && /^[a-zA-Z0-9.:[\]-]+$/.test(host));
+      input.setCustomValidity(valid ? '' : 'Use a hostname or IP only (no protocol, port, path, or query).');
+      return valid ? host : '';
     }
 
     function onIpSelectChange() {
@@ -1193,7 +1236,7 @@
       if (select.value === 'custom') {
         customInput.style.display = 'inline-block';
         customInput.focus();
-        currentSelectedIp = customInput.value.trim() || window.location.hostname;
+        currentSelectedIp = normalizeCustomHost(customInput.value, customInput) || defaultStreamHost();
         localStorage.setItem('rist_active_ip', 'custom');
       } else {
         customInput.style.display = 'none';
@@ -1206,7 +1249,7 @@
 
     function onCustomIpInput() {
       const input = document.getElementById('ipCustomInput');
-      currentSelectedIp = input.value.trim() || window.location.hostname;
+      currentSelectedIp = normalizeCustomHost(input.value, input) || defaultStreamHost();
       localStorage.setItem('rist_custom_ip', input.value.trim());
       renderGrid();
     }
@@ -1215,7 +1258,13 @@
     async function loadStreams() {
       try {
         const res = await apiFetch('/api/streams');
-        streams = await res.json();
+        const data = await res.json();
+        // Skip re-render when nothing changed; a full innerHTML rebuild every
+        // 2.5s kills text selection and makes the copy buttons flicker.
+        const sig = JSON.stringify(data);
+        if (sig === lastStreamsSig) return;
+        lastStreamsSig = sig;
+        streams = data;
         renderGrid();
       } catch (err) {}
     }
@@ -1224,6 +1273,15 @@
       if (!bps) return '0 bps';
       if (bps >= 1000000) return `${(bps / 1000000).toFixed(2)} Mbps`;
       return `${(bps / 1000).toFixed(0)} kbps`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
     }
 
     function renderGrid() {
@@ -1256,15 +1314,19 @@
         return;
       }
 
-      const activeHostIp = currentSelectedIp || window.location.hostname;
+      const activeHost = currentSelectedIp || systemIps.publicHost || systemIps.publicIp || FALLBACK_HOST;
 
       grid.innerHTML = streams.map(s => {
         const stats = s.liveStats || {};
         const isLive = Boolean(stats.online);
+        const safeName = escapeHtml(s.name);
+        const safeUsername = escapeHtml(s.username);
 
-        const publishUrl = `rist://${activeHostIp}:${s.receivePort}?username=${s.username}&password=${s.password}`;
-        const playUrl    = `rist://${activeHostIp}:${s.forwardPort}?cname=${s.streamId}&aes-type=128&secret=${s.playbackSecret}`;
-        const statsUrl   = `http://${activeHostIp}:${window.location.port}/stats/${s.streamId}`;
+        const publishUrl = `rist://${activeHost}:${s.receivePort}?username=${s.username}&password=${s.password}`;
+        const playUrl    = `rist://${activeHost}:${s.forwardPort}?cname=${s.streamId}&aes-type=128&secret=${s.playbackSecret}`;
+        // Stats is HTTP(S), not RIST UDP: keep it on the authenticated dashboard
+        // origin so HTTPS users never receive a mixed-content URL.
+        const statsUrl   = `${window.location.origin}/stats/${s.streamId}`;
 
         const bitrateText = formatBitrate(stats.bitrate);
         const rttText     = stats.rtt ? `${stats.rtt} ms` : '—';
@@ -1275,7 +1337,7 @@
             <div class="card-header">
               <div class="card-title-group">
                 <span class="status-badge ${isLive ? 'live' : 'offline'}"><span class="dot"></span>${isLive ? 'Live' : 'Offline'}</span>
-                <span class="stream-name" title="${s.name}">${s.name}</span>
+                <span class="stream-name" title="${safeName}">${safeName}</span>
               </div>
                             <div class="card-actions">
                 <button class="btn-icon-ghost" title="Edit Publisher Auth" onclick="openEditModal('${s.id}')">
@@ -1294,7 +1356,7 @@
             <div class="info-table">
               <div class="info-cell"><span class="info-title">Ingest (Recv)</span><span class="info-detail">${s.receivePort} / UDP</span></div>
               <div class="info-cell"><span class="info-title">Output (Play)</span><span class="info-detail">${s.forwardPort} / UDP</span></div>
-              <div class="info-cell"><span class="info-title">Publisher Auth</span><span class="info-detail">${s.username} : ••••</span></div>
+              <div class="info-cell"><span class="info-title">Publisher Auth</span><span class="info-detail">${safeUsername} : ••••</span></div>
               <div class="info-cell"><span class="info-title">AES Token</span><span class="info-detail">${s.playbackSecret ? s.playbackSecret.slice(0,8) + '…' : '—'}</span></div>
             </div>
             <div class="link-group">
