@@ -669,15 +669,14 @@
     /* Info Table */
     .info-table {
       display: grid;
-      /* 4 across on a wide card, 2 when the card narrows. */
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px 14px;
       background: rgba(255, 255, 255, 0.02);
       border-radius: 10px;
       padding: 10px 14px;
       font-size: 12px;
     }
-    .info-cell { display: flex; flex-direction: column; gap: 2px; }
+    .info-cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .info-title {
       font-size: 10px;
       text-transform: uppercase;
@@ -844,6 +843,7 @@
       .btn-copy { min-height: 36px; padding: 8px 12px; }
       .btn-icon-ghost { min-width: 40px; min-height: 40px; }
       .header-auth-btn { min-height: 36px; }
+      .info-table { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       main { padding: 20px 14px 60px; }
       .stream-grid { grid-template-columns: 1fr; }
       .quick-info { flex-direction: column; align-items: flex-start; }
