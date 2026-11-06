@@ -136,6 +136,19 @@ function resetAttempts(ip) {
     delete rateLimitCache[ip];
 }
 
+// Periodic cleanup: purge inactive IPs so scanner attempts do not leak memory.
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, record] of Object.entries(rateLimitCache)) {
+        // Drop records idle for over 1 hour, unless actively locked out.
+        if (record.lockoutUntil > 0 && now < record.lockoutUntil) continue;
+        if (now - record.firstAttempt > 3600000) {
+            delete rateLimitCache[ip];
+        }
+    }
+}, 600000).unref(); // run every 10 minutes, unref so it does not hold the event loop
+
+
 function secureCompare(clientKey) {
     if (!clientKey || typeof clientKey !== 'string') return false;
     const a = crypto.createHash('sha256').update(clientKey.trim()).digest();
