@@ -620,6 +620,18 @@
       text-transform: uppercase;
       color: var(--muted);
     }
+    .data-status {
+      display: none;
+      margin: -8px 0 14px;
+      padding: 8px 11px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--muted);
+      font: 11px/1.45 var(--font-mono);
+    }
+    .data-status.visible { display: block; }
+    .data-status.error { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 38%, var(--border)); }
 
     /* Buttons: tactical, flat, high contrast */
     .btn {
@@ -1084,10 +1096,12 @@
     <div class="toolbar">
       <h2>Active Channels</h2>
       <button class="btn btn-primary" onclick="openModal()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add Channel
       </button>
     </div>
+
+    <div class="data-status" id="dataStatus" role="status" aria-live="polite"></div>
 
     <div class="stream-grid" id="grid"></div>
   </main>
@@ -1474,12 +1488,31 @@
       });
     }
 
+    // Data status line: says what is happening when the feed is not healthy,
+    // instead of silently freezing the last good view.
+    function setDataStatus(text, kind) {
+      const el = document.getElementById('dataStatus');
+      if (!el) return;
+      if (!text) {
+        el.textContent = '';
+        el.className = 'data-status';
+        return;
+      }
+      el.textContent = text;
+      el.className = `data-status visible${kind === 'error' ? ' error' : ''}`;
+    }
+
     async function loadStreams() {
       try {
         const res = await apiFetch('/api/streams');
+        if (!res.ok) {
+          setDataStatus(`Feed error (HTTP ${res.status}). Showing the last good snapshot.`, 'error');
+          return;
+        }
         const data = await res.json();
         const sig = streamStructSig(data);
         streams = data;
+        setDataStatus('');
         if (sig === lastStreamsSig) {
           patchMetrics(data);
           return;
@@ -1489,8 +1522,10 @@
         // cannot leave the grid stuck on stale markup forever.
         lastStreamsSig = sig;
       } catch (err) {
-        // 401 is handled inside apiFetch (gate + poll stop). Other failures leave
-        // the last good view in place and surface on the next action.
+        // 401 is handled inside apiFetch (gate + poll stop). Anything else is a
+        // transport failure: name it and keep the last good view.
+        if (err && err.message === 'Unauthorized') return;
+        setDataStatus('Dashboard cannot reach the receiver API. Retrying every 2.5s.', 'error');
       }
     }
 
@@ -1839,6 +1874,8 @@
       applyTheme(document.documentElement.getAttribute('data-theme'));
       hideAuthGate();
       if (pollInterval) clearInterval(pollInterval);
+      lastStreamsSig = '';
+      setDataStatus('Connecting to the receiver API.');
       loadSystemIps().then(() => {
         loadStreams();
         pollInterval = setInterval(loadStreams, 2500);
