@@ -1004,7 +1004,6 @@
   <div class="toast-container" id="toastBox"></div>
 
   <script>
-    const FALLBACK_HOST = 'live.ashveil.my.id';
     let streams = [];
     let lastStreamsSig = '';
     let systemIps = { publicIp: '', publicHost: '', publicHostVerified: false, requestHost: '' };
@@ -1148,23 +1147,33 @@
 
     // Tell the operator which host is actually being published. The domain is
     // only trustworthy while its record still resolves straight to this server.
+    // The status line mirrors resolveStreamHost(), so it always names the host
+    // that is actually inside the generated URLs.
     function updateRistHostStatus() {
       const el = document.getElementById('ristHostStatus');
       if (!el) return;
 
-      if (systemIps.publicHostVerified) {
-        el.textContent = `${systemIps.publicHost} (DNS only, verified)`;
-        el.style.color = '#34d399';
-        return;
-      }
+      const host = resolveStreamHost();
 
-      if (systemIps.publicHost) {
-        el.textContent = `${systemIps.publicHost} does not resolve to ${systemIps.publicIp || 'this server'} — using raw IP`;
+      if (!host) {
+        el.textContent = 'No stream host: DNS verification failed and no public IP was detected';
         el.style.color = '#fbbf24';
         return;
       }
 
-      el.textContent = systemIps.publicIp ? `raw IP ${systemIps.publicIp}` : 'unknown host';
+      if (host === systemIps.publicHost && systemIps.publicHostVerified) {
+        el.textContent = `${host} (DNS only, verified)`;
+        el.style.color = '#34d399';
+        return;
+      }
+
+      if (host === systemIps.publicIp) {
+        el.textContent = `${host} (raw IP — the domain does not resolve to this server)`;
+        el.style.color = '#fbbf24';
+        return;
+      }
+
+      el.textContent = `${host} (custom host)`;
       el.style.color = '#fbbf24';
     }
 
@@ -1177,9 +1186,6 @@
       }
       if (systemIps.publicIp) {
         options.push({ value: systemIps.publicIp, label: `Public IP (${systemIps.publicIp})` });
-      }
-      if (!options.length && FALLBACK_HOST) {
-        options.push({ value: FALLBACK_HOST, label: `Domain (${FALLBACK_HOST})` });
       }
 
       options.push({ value: 'custom', label: 'Custom host…' });
@@ -1214,12 +1220,18 @@
       onIpSelectChange();
     }
 
-    // Never fall back to the dashboard hostname: that one is Cloudflare-proxied
-    // and cannot carry RIST UDP. Prefer the verified DNS-only domain.
-    function defaultStreamHost() {
-      return systemIps.publicHostVerified && systemIps.publicHost
-        ? systemIps.publicHost
-        : (systemIps.publicIp || FALLBACK_HOST);
+    // Single source of truth for the host written into rist:// URLs and shown
+    // in the status line, so those two can never disagree.
+    // Order: an explicit selection, then the DNS-verified domain, then the
+    // public IP. Nothing is guessed; an empty result means no valid host.
+    function automaticStreamHost() {
+      if (systemIps.publicHostVerified && systemIps.publicHost) return systemIps.publicHost;
+      if (systemIps.publicIp) return systemIps.publicIp;
+      return '';
+    }
+
+    function resolveStreamHost() {
+      return currentSelectedIp || automaticStreamHost();
     }
 
     function normalizeCustomHost(value, input) {
@@ -1236,7 +1248,7 @@
       if (select.value === 'custom') {
         customInput.style.display = 'inline-block';
         customInput.focus();
-        currentSelectedIp = normalizeCustomHost(customInput.value, customInput) || defaultStreamHost();
+        currentSelectedIp = normalizeCustomHost(customInput.value, customInput) || automaticStreamHost();
         localStorage.setItem('rist_active_ip', 'custom');
       } else {
         customInput.style.display = 'none';
@@ -1244,13 +1256,15 @@
         localStorage.setItem('rist_active_ip', select.value);
       }
 
+      updateRistHostStatus();
       renderGrid();
     }
 
     function onCustomIpInput() {
       const input = document.getElementById('ipCustomInput');
-      currentSelectedIp = normalizeCustomHost(input.value, input) || defaultStreamHost();
+      currentSelectedIp = normalizeCustomHost(input.value, input) || automaticStreamHost();
       localStorage.setItem('rist_custom_ip', input.value.trim());
+      updateRistHostStatus();
       renderGrid();
     }
     // ==========================================
@@ -1314,7 +1328,7 @@
         return;
       }
 
-      const activeHost = currentSelectedIp || systemIps.publicHost || systemIps.publicIp || FALLBACK_HOST;
+      const activeHost = resolveStreamHost();
 
       grid.innerHTML = streams.map(s => {
         const stats = s.liveStats || {};
@@ -1322,8 +1336,8 @@
         const safeName = escapeHtml(s.name);
         const safeUsername = escapeHtml(s.username);
 
-        const publishUrl = `rist://${activeHost}:${s.receivePort}?username=${s.username}&password=${s.password}`;
-        const playUrl    = `rist://${activeHost}:${s.forwardPort}?cname=${s.streamId}&aes-type=128&secret=${s.playbackSecret}`;
+        const publishUrl = activeHost ? `rist://${activeHost}:${s.receivePort}?username=${s.username}&password=${s.password}` : '';
+        const playUrl    = activeHost ? `rist://${activeHost}:${s.forwardPort}?cname=${s.streamId}&aes-type=128&secret=${s.playbackSecret}` : '';
         // Stats is HTTP(S), not RIST UDP: keep it on the authenticated dashboard
         // origin so HTTPS users never receive a mixed-content URL.
         const statsUrl   = `${window.location.origin}/stats/${s.streamId}`;
@@ -1331,6 +1345,9 @@
         const bitrateText = formatBitrate(stats.bitrate);
         const rttText     = stats.rtt ? `${stats.rtt} ms` : '—';
         const qualityText = isLive && stats.quality !== undefined ? `${stats.quality}%` : '—';
+
+        const pubDisplay = publishUrl || '(no host available — check DNS/IP)';
+        const playDisplay = playUrl || '(no host available — check DNS/IP)';
 
         return `
           <div class="card ${isLive ? 'is-live' : 'is-offline'}">
@@ -1362,13 +1379,13 @@
             <div class="link-group">
               <div class="copy-box">
                 <span class="copy-tag pub">PUB</span>
-                <span class="copy-url" title="${publishUrl}">${publishUrl}</span>
-                <button class="btn-copy" onclick="copyText('${publishUrl}', this)">Copy</button>
+                <span class="copy-url" title="${publishUrl}">${pubDisplay}</span>
+                <button class="btn-copy" onclick="copyText('${publishUrl}', this)" ${publishUrl ? '' : 'disabled'}>Copy</button>
               </div>
               <div class="copy-box">
                 <span class="copy-tag play">OBS</span>
-                <span class="copy-url" title="${playUrl}">${playUrl}</span>
-                <button class="btn-copy" onclick="copyText('${playUrl}', this)">Copy</button>
+                <span class="copy-url" title="${playUrl}">${playDisplay}</span>
+                <button class="btn-copy" onclick="copyText('${playUrl}', this)" ${playUrl ? '' : 'disabled'}>Copy</button>
               </div>
               <div class="copy-box">
                 <span class="copy-tag stats">STATS</span>
