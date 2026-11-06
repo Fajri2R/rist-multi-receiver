@@ -33,12 +33,20 @@
       --faint: #9fa5a0;
       --accent: #34d399;
       --accent-dim: #12392f;
+      /* Text sitting on --accent-dim. Kept separate from --accent because the
+         small mono badge needs 4.5:1 against that tinted surface in both themes. */
+      --accent-on-dim: #34d399;
       --brand-ivory: #f0f0e8;
       --brand-silver: #c0c0b8;
       --blue: #82b6e8;
       --amber: #e5bd62;
       --violet: #b4a4e6;
       --pink: #e29abd;
+      /* Endpoint-tag text. These sit on 14% tints, so light mode needs inkier
+         versions to clear 4.5:1 on the tinted surface. */
+      --tag-pub: #9cc7f0;
+      --tag-play: #34d399;
+      --tag-stats: #e5bd62;
       --term-bg: #121514;
       --term-fg: #d6dad5;
       --term-cmt: #6f7a72;
@@ -71,11 +79,19 @@
       --border-soft: #d8e0da;
       --text: #18231d;
       --muted: #506057;
-      --faint: #708078;
-      --accent: #138a5c;
+      --faint: #55645b;
+      --accent: #107950;
       --accent-dim: #d8efe4;
+      --accent-on-dim: #0d6844;
       --brand-ivory: #18231d;
       --brand-silver: #53645a;
+      --blue: #1f5f8f;
+      --amber: #7a5c14;
+      --violet: #5b4a91;
+      --pink: #8f4468;
+      --tag-pub: #1f5f8f;
+      --tag-play: #0d6844;
+      --tag-stats: #7a5c14;
       --header-bg: rgba(244, 248, 244, .88);
       --term-bg: #fff;
       --term-fg: #16241c;
@@ -321,7 +337,7 @@
     }
     /* The dot only renders live state: emerald when a stream is actually
        receiving, muted when none is. It never pulses without a live stream. */
-    .pill.is-live { color: var(--accent); border-color: var(--accent-dim); background: var(--accent-dim); }
+    .pill.is-live { color: var(--accent-on-dim); border-color: var(--accent-dim); background: var(--accent-dim); }
     .pill.is-live .pill-dot { background: var(--accent); }
     .icon-btn {
       width: 36px;
@@ -382,7 +398,6 @@
     .btn-toggle.is-active:hover { color: var(--amber); background: rgba(229, 189, 98, 0.12); }
     .btn-toggle.is-inactive { color: var(--accent); }
     .btn-toggle.is-inactive:hover { background: var(--accent-dim); }
-
     /* A paused channel dims and marks itself with an amber rule, not a full
        accent stripe: the state is informational, the live state stays king. */
     .card.is-paused { opacity: 0.72; }
@@ -509,7 +524,7 @@
       gap: 6px;
       background: var(--accent-dim);
       border: 1px solid rgba(52, 211, 153, 0.35);
-      color: var(--accent);
+      color: var(--accent-on-dim);
     }
 
     .auth-shake {
@@ -552,7 +567,16 @@
       gap: 7px;
     }
     .quick-info-text svg { flex-shrink: 0; }
+    /* Icon hues are functional: info is blue, host state is accent on verify. */
+    .qi-icon { color: var(--faint); }
+    .qi-info { color: var(--blue); }
+    .qi-host { color: var(--accent); }
     .quick-info-text strong { color: var(--text); font-weight: 600; }
+    /* Host status colors come from classes, never hardcoded hex: updateRistHostStatus
+       swaps host-ok / host-warn / host-missing and the theme vars keep it readable. */
+    .host-ok { color: var(--accent); }
+    .host-warn { color: var(--amber); }
+    .host-missing { color: var(--faint); }
     .quick-info-text code {
       background: var(--surface-2);
       border: 1px solid var(--border);
@@ -629,186 +653,184 @@
     }
     .btn-icon-ghost {
       background: transparent;
-      color: var(--text-muted);
+      color: var(--faint);
       padding: 6px;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
       border: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.15s;
+      transition: background .16s, color .16s;
     }
-    .btn-icon-ghost:hover {
-      color: #38bdf8;
-      background: rgba(6, 182, 212, 0.12);
-    }
-    .btn-icon-ghost.danger:hover {
-      color: var(--danger);
-      background: rgba(239, 68, 68, 0.12);
-    }
+    .btn-icon-ghost:hover { color: var(--text); background: var(--surface-2); }
+    .btn-icon-ghost:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .btn-icon-ghost.danger:hover { color: var(--danger); background: rgba(229, 120, 106, 0.12); }
     .btn-danger-ghost {
       background: transparent;
-      color: var(--text-muted);
+      color: var(--faint);
       padding: 6px;
-      border-radius: 8px;
+      border-radius: 6px;
     }
-    .btn-danger-ghost:hover {
-      color: var(--danger);
-      background: rgba(239, 68, 68, 0.1);
-    }
+    .btn-danger-ghost:hover { color: var(--danger); background: rgba(229, 120, 106, 0.1); }
 
-    /* Card Grid */
+    /* Card grid */
     .stream-grid {
       display: grid;
       /* auto-fit collapses empty tracks, so one channel uses the full row
          instead of leaving dead columns to its right. */
       grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
-      gap: 20px;
+      gap: 14px;
     }
     .card {
-      background: var(--card-bg);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 22px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 17px 17px 15px;
       position: relative;
-      transition: all 0.25s ease;
+      transition: border-color .16s, background .16s, transform .16s;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
+      min-width: 0;
     }
     .card:hover {
       border-color: var(--card-hover-border);
+      background: var(--surface-2);
       transform: translateY(-2px);
-      box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
     }
-    .card.is-live { border-top: 3px solid var(--success); }
-    .card.is-offline { border-top: 3px solid rgba(255, 255, 255, 0.15); }
-    .card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .card-title-group { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .stream-name { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.2px; }
+    /* Live/offline is carried by the badge, not by a colored top stripe: the
+       stripe added color without adding information the badge did not have. */
+    .card-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .card-title-group { display: flex; align-items: center; gap: 9px; min-width: 0; }
+    .stream-name {
+      font-size: 14.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--brand-ivory);
+    }
 
-    /* Status Indicator */
+    /* Status indicator: functional state, so the dot is allowed to pulse, and
+       only while a stream is actually running. */
     .status-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 3px 8px;
-      border-radius: 9999px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
+      gap: 5px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      letter-spacing: .06em;
       text-transform: uppercase;
+      flex-shrink: 0;
     }
     .status-badge.live {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      background: var(--accent-dim);
+      color: var(--accent-on-dim);
+      border: 1px solid rgba(52, 211, 153, 0.28);
     }
     .status-badge.offline {
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text-muted);
-      border: 1px solid var(--card-border);
+      background: var(--surface-2);
+      color: var(--faint);
+      border: 1px solid var(--border);
     }
     .dot { width: 6px; height: 6px; border-radius: 50%; }
-    .status-badge.live .dot {
-      background: #10b981;
-      box-shadow: 0 0 8px #10b981;
-      animation: pulse 2s infinite;
-    }
-    .status-badge.offline .dot { background: #64748b; }
+    .status-badge.live .dot { background: var(--accent); animation: pulse 2.4s ease-in-out infinite; }
+    .status-badge.offline .dot { background: var(--faint); }
     @keyframes pulse {
-      0% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(1.2); }
-      100% { opacity: 1; transform: scale(1); }
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
     }
 
-    /* Live Metrics Panel */
+    /* Live metrics: inset panel, mono values, emerald only on bitrate */
     .metrics-row {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
-      background: rgba(0, 0, 0, 0.25);
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      border-radius: 12px;
-      padding: 12px 8px;
+      background: var(--term-bg);
+      border: 1px solid var(--border-soft);
+      border-radius: 9px;
+      padding: 10px 8px;
     }
-    .metric-item { text-align: center; }
+    .metric-item { text-align: center; min-width: 0; }
     .metric-value {
-      font-size: 17px;
-      font-weight: 700;
-      font-family: var(--font-mono);
-      color: #fff;
-    }
-    .metric-value.highlight { color: #38bdf8; }
-    .metric-label {
-      font-size: 10px;
+      font-size: 16px;
       font-weight: 600;
-      color: var(--text-muted);
+      font-family: var(--font-mono);
+      color: var(--term-fg);
+    }
+    .metric-value.highlight { color: var(--accent); }
+    .metric-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--faint);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: .08em;
       margin-top: 3px;
     }
 
-    /* Info Table */
+    /* Info table: four even columns on desktop, two on mobile */
     .info-table {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px 14px;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 10px;
-      padding: 10px 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-soft);
+      border-radius: 9px;
+      padding: 10px 12px;
       font-size: 12px;
     }
     .info-cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .info-title {
-      font-size: 10px;
+      font-family: var(--font-mono);
+      font-size: 9px;
       text-transform: uppercase;
-      color: var(--text-muted);
-      font-weight: 600;
-      letter-spacing: 0.4px;
+      color: var(--faint);
+      letter-spacing: .07em;
     }
     .info-detail {
       font-family: var(--font-mono);
-      color: #e2e8f0;
-      font-size: 12px;
+      color: var(--text);
+      font-size: 11.5px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    /* Links */
-    .link-group { display: flex; flex-direction: column; gap: 8px; }
-        .copy-box {
+    /* Copy rows: terminal-style so a long rist:// URL reads as data */
+    .link-group { display: flex; flex-direction: column; gap: 6px; }
+    .copy-box {
       display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 8px;
-      padding: 9px 12px;
-      transition: border-color 0.15s;
+      align-items: center;
+      gap: 9px;
+      background: var(--term-bg);
+      border: 1px solid var(--border-soft);
+      border-radius: 7px;
+      padding: 7px 10px;
+      transition: border-color .16s;
     }
-    .copy-box:hover { border-color: rgba(6, 182, 212, 0.4); }
+    .copy-box:hover { border-color: var(--border); }
     .copy-tag {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 3px 7px;
-      border-radius: 4px;
-      letter-spacing: 0.5px;
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 500;
+      letter-spacing: .08em;
+      padding: 2px 5px;
+      border-radius: 3px;
       flex-shrink: 0;
-      margin-top: 1px;
+      text-transform: uppercase;
     }
-    .copy-tag.pub { background: rgba(6, 182, 212, 0.2); color: #67e8f9; }
-    .copy-tag.play { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
-    .copy-tag.stats { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+    /* Tag colors follow the Ashveil category hues, one per endpoint role. */
+    .copy-tag.pub { background: rgba(130, 182, 232, 0.14); color: var(--tag-pub); }
+    .copy-tag.play { background: rgba(52, 211, 153, 0.14); color: var(--tag-play); }
+    .copy-tag.stats { background: rgba(229, 189, 98, 0.14); color: var(--tag-stats); }
     .copy-url {
       flex: 1;
       font-family: var(--font-mono);
       font-size: 11.5px;
-      color: #cbd5e1;
-      line-height: 1.45;
+      color: var(--term-fg);
       /* Break only where needed: urls split at separators instead of
          mid-word, unless a single token exceeds the whole box. */
       overflow-wrap: anywhere;
@@ -817,122 +839,150 @@
       user-select: all;
     }
     .btn-copy {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: #cbd5e1;
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 11px;
-      font-weight: 600;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 5px;
+      padding: 3px 8px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      transition: all 0.15s;
+      transition: background .16s, color .16s, border-color .16s;
       flex-shrink: 0;
     }
-    .btn-copy:hover {
-      background: #0ea5e9;
-      color: #fff;
-      border-color: #0ea5e9;
-    }
-    .btn-copy.copied {
-      background: var(--success);
-      color: #fff;
-      border-color: var(--success);
-    }
+    .btn-copy:hover { color: var(--text); border-color: #3b443f; }
+    .btn-copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .btn-copy.copied { color: var(--accent); border-color: #2c5145; }
+    .btn-copy:disabled { cursor: not-allowed; opacity: .45; }
 
-    /* Empty state */
+    /* Empty state: says why it is empty and offers the one action that fills it */
     .empty-placeholder {
       grid-column: 1 / -1;
       text-align: center;
-      padding: 60px 20px;
-      background: var(--card-bg);
-      border: 1px dashed rgba(255, 255, 255, 0.12);
-      border-radius: 16px;
+      padding: 48px 20px;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
     }
-    .empty-icon { width: 48px; height: 48px; margin: 0 auto 16px; color: var(--text-muted); opacity: 0.6; }
-    .empty-placeholder h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
-    .empty-placeholder p { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
+    .empty-icon { width: 40px; height: 40px; margin: 0 auto 14px; color: var(--faint); }
+    .empty-placeholder h3 { font-size: 14.5px; font-weight: 600; margin-bottom: 5px; color: var(--brand-ivory); }
+    .empty-placeholder p { color: var(--muted); font-size: 12.5px; margin-bottom: 18px; }
 
     /* Modal */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(8px);
+      background: rgba(6, 8, 7, 0.66);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 100;
       padding: 16px;
+      overflow-y: auto;
     }
     .modal-overlay.open { display: flex; }
     .modal-card {
-      background: #111726;
-      border: 1px solid var(--card-border);
-      border-radius: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       width: 100%;
       max-width: 440px;
-      padding: 28px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-      animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      animation: modalIn 0.16s ease-out;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
     }
-    @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-    .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-    .modal-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 22px; }
-    .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px; }
+    @keyframes modalIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 3px; color: var(--brand-ivory); }
+    .modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+    .form-group { margin-bottom: 13px; }
+    .form-group label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--faint);
+      margin-bottom: 5px;
+    }
     .form-control {
       width: 100%;
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid var(--card-border);
-      color: var(--text-main);
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-family: var(--font-sans);
-      font-size: 13px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 7px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
     }
-    .form-control:focus { outline: none; border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2); }
-    .modal-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+    .form-control:focus { outline: none; border-color: var(--accent); }
+    .form-control:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .form-hint code {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+    }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 
-    /* Toast */
-    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 100001; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
-    .toast {
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #fff;
-      padding: 10px 16px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 500;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-      animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    /* Toast: one line of feedback, mono, no glass */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      left: 20px;
+      z-index: 100001;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 7px;
+      pointer-events: none;
     }
-    @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 2px solid var(--accent);
+      color: var(--text);
+      padding: 9px 14px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      max-width: 420px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      animation: toastIn 0.18s ease-out;
+    }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
     @media (max-width: 860px) {
-      header { padding: 12px 14px; }
-      header .nav-container { flex-direction: column; align-items: stretch; gap: 12px; }
+      header { padding: 8px 14px; }
+      header .nav-container { flex-direction: column; align-items: stretch; gap: 10px; }
       .brand { min-width: 0; }
-      .brand-text { min-width: 0; }
-      .brand-text h1 { font-size: 15px; flex-wrap: wrap; row-gap: 2px; }
+      .brand-txt span { display: none; }
+      .brand-txt b { font-size: 12px; letter-spacing: .25em; }
       /* The selector must shrink with the viewport. A fixed min-width here
          pushed the whole header past a 360px screen. */
-      .ip-selector-bar { justify-content: space-between; flex-wrap: wrap; min-width: 0; overflow-x: visible; }
-      .ip-select { flex: 1 1 0; min-width: 0; width: 100%; }
-      .ip-custom-field { flex: 1 1 160px; min-width: 0; }
-      .header-badges { min-width: 0; flex-wrap: wrap; justify-content: flex-start; }
-      /* Touch targets: icon and Copy controls were 23-27px tall on a phone. */
-      .btn-copy { min-height: 36px; padding: 8px 12px; }
+      .ip-selector-bar { justify-content: space-between; flex-wrap: wrap; min-width: 0; }
+      .ip-select { flex: 1 1 0; min-width: 0; width: 100%; max-width: none; }
+      .ip-custom-field { flex: 1 1 160px; min-width: 0; width: 100%; }
+      .header-badges { min-width: 0; flex-wrap: wrap; justify-content: flex-start; gap: 6px; }
+      /* Touch targets: at least 36-40px on mobile per accessibility standard */
+      .btn-copy { min-height: 36px; padding: 6px 10px; }
       .btn-icon-ghost { min-width: 40px; min-height: 40px; }
       .header-auth-btn { min-height: 36px; }
+      .icon-btn { min-width: 36px; min-height: 36px; }
       .info-table { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      main { padding: 20px 14px 60px; }
+      main { padding: 18px 14px 48px; }
       .stream-grid { grid-template-columns: 1fr; }
-      .quick-info { flex-direction: column; align-items: flex-start; }
-      .toolbar { flex-direction: column; align-items: flex-start; }
+      .quick-info { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .toolbar { flex-direction: row; align-items: center; }
     }
   </style>
 </head>
@@ -999,12 +1049,12 @@
   <main>
     <div class="quick-info">
       <div class="quick-info-text">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="qi-icon qi-info" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
         <span><strong>NOALBS Ready:</strong> Stats URL auto-matches dashboard origin (<code>/stats/&lt;streamId&gt;</code>)</span>
       </div>
       <div class="quick-info-text">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span>Stream Ingest/Playback: <strong id="ristHostStatus">Checking DNS-only domain…</strong></span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="qi-icon qi-host" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Stream Ingest/Playback: <strong id="ristHostStatus" class="host-ok">Checking DNS-only domain…</strong></span>
       </div>
     </div>
 
@@ -1235,28 +1285,31 @@
       const el = document.getElementById('ristHostStatus');
       if (!el) return;
 
+      // Color is a class so both themes resolve it through CSS variables.
+      const paint = (text, cls) => {
+        el.textContent = text;
+        el.classList.remove('host-ok', 'host-warn', 'host-missing');
+        el.classList.add(cls);
+      };
+
       const host = resolveStreamHost();
 
       if (!host) {
-        el.textContent = 'No stream host: DNS verification failed and no public IP was detected';
-        el.style.color = '#fbbf24';
+        paint('No stream host: DNS verification failed and no public IP was detected', 'host-missing');
         return;
       }
 
       if (host === systemIps.publicHost && systemIps.publicHostVerified) {
-        el.textContent = `${host} (DNS only, verified)`;
-        el.style.color = '#34d399';
+        paint(`${host} (DNS only, verified)`, 'host-ok');
         return;
       }
 
       if (host === systemIps.publicIp) {
-        el.textContent = `${host} (raw IP — the domain does not resolve to this server)`;
-        el.style.color = '#fbbf24';
+        paint(`${host} (raw IP, the domain does not resolve to this server)`, 'host-warn');
         return;
       }
 
-      el.textContent = `${host} (custom host)`;
-      el.style.color = '#fbbf24';
+      paint(`${host} (custom host)`, 'host-warn');
     }
 
     function usableHosts() {
@@ -1421,11 +1474,11 @@
         const statsUrl   = `${window.location.origin}/stats/${s.streamId}`;
 
         const bitrateText = formatBitrate(stats.bitrate);
-        const rttText     = stats.rtt ? `${stats.rtt} ms` : '—';
-        const qualityText = isLive && stats.quality !== undefined ? `${stats.quality}%` : '—';
+        const rttText     = stats.rtt ? `${stats.rtt} ms` : '-';
+        const qualityText = isLive && stats.quality !== undefined ? `${stats.quality}%` : '-';
 
-        const pubDisplay = publishUrl || '(no host available — check DNS/IP)';
-        const playDisplay = playUrl || '(no host available — check DNS/IP)';
+        const pubDisplay = publishUrl || '(no host available, check DNS/IP)';
+        const playDisplay = playUrl || '(no host available, check DNS/IP)';
 
         return `
           <div class="card ${isLive ? 'is-live' : 'is-offline'}">
@@ -1452,7 +1505,7 @@
               <div class="info-cell"><span class="info-title">Ingest (Recv)</span><span class="info-detail">${s.receivePort} / UDP</span></div>
               <div class="info-cell"><span class="info-title">Output (Play)</span><span class="info-detail">${s.forwardPort} / UDP</span></div>
               <div class="info-cell"><span class="info-title">Publisher Auth</span><span class="info-detail">${safeUsername} : ••••</span></div>
-              <div class="info-cell"><span class="info-title">AES Token</span><span class="info-detail">${s.playbackSecret ? s.playbackSecret.slice(0,8) + '…' : '—'}</span></div>
+              <div class="info-cell"><span class="info-title">AES Token</span><span class="info-detail">${s.playbackSecret ? s.playbackSecret.slice(0,8) + '...' : '-'}</span></div>
             </div>
             <div class="link-group">
               <div class="copy-box">
