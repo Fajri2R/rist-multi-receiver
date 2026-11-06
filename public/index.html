@@ -4,25 +4,89 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RIST Multi Receiver Dashboard</title>
+  <meta name="theme-color" content="#101211" />
+  <script>
+    // Runs before the stylesheet so a stored light choice never flashes dark.
+    (function () {
+      try {
+        var saved = localStorage.getItem('ashveil-theme');
+        document.documentElement.setAttribute('data-theme', saved === 'light' ? 'light' : 'dark');
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
+    /* Ashveil brand tokens. Source: the ashveil-control-hub identity, kept in
+       variables so both themes and every component read one palette. */
     :root {
-      --bg: #090d16;
-      --card-bg: rgba(18, 24, 38, 0.7);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --card-hover-border: rgba(99, 102, 241, 0.35);
-      --accent: #6366f1;
-      --accent-glow: rgba(99, 102, 241, 0.25);
-      --rist-cyan: #06b6d4;
-      --rist-blue: #3b82f6;
-      --success: #10b981;
-      --danger: #ef4444;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
+      --bg: #101211;
+      --surface: #171918;
+      --surface-2: #1d201f;
+      --border: #2b302e;
+      --border-soft: #222624;
+      --text: #f4f4ec;
+      --muted: #c4c8c4;
+      --faint: #9fa5a0;
+      --accent: #34d399;
+      --accent-dim: #12392f;
+      --brand-ivory: #f0f0e8;
+      --brand-silver: #c0c0b8;
+      --blue: #82b6e8;
+      --amber: #e5bd62;
+      --violet: #b4a4e6;
+      --pink: #e29abd;
+      --term-bg: #121514;
+      --term-fg: #d6dad5;
+      --term-cmt: #6f7a72;
+      --header-bg: rgba(15, 17, 16, .88);
+      --pat-line: rgba(240, 240, 232, .085);
+      --pat-accent: rgba(52, 211, 153, .17);
+      --pat-strong: rgba(240, 240, 232, .045);
+      --radius: 14px;
+      --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+      /* Aliases kept so existing component rules keep resolving without edits. */
+      --card-bg: var(--surface);
+      --card-border: var(--border);
+      --card-hover-border: #33414f;
+      --text-main: var(--text);
+      --text-muted: var(--muted);
+      --accent-glow: rgba(52, 211, 153, .25);
+      --rist-cyan: var(--accent);
+      --rist-blue: var(--blue);
+      --success: var(--accent);
+      --danger: #e5786a;
+      color-scheme: dark;
+    }
+
+    [data-theme="light"] {
+      --bg: #eef1ed;
+      --surface: #fbfcfa;
+      --surface-2: #e5ebe6;
+      --border: #c9d3cc;
+      --border-soft: #d8e0da;
+      --text: #18231d;
+      --muted: #506057;
+      --faint: #708078;
+      --accent: #138a5c;
+      --accent-dim: #d8efe4;
+      --brand-ivory: #18231d;
+      --brand-silver: #53645a;
+      --header-bg: rgba(244, 248, 244, .88);
+      --term-bg: #fff;
+      --term-fg: #16241c;
+      --term-cmt: #4a5c52;
+      --pat-line: rgba(24, 35, 29, .22);
+      --pat-accent: rgba(19, 138, 92, .26);
+      --pat-strong: rgba(24, 35, 29, .07);
+      --card-hover-border: #9fb6ab;
+      --accent-glow: rgba(19, 138, 92, .18);
+      --danger: #b4392c;
+      color-scheme: light;
     }
 
         /* Modern Custom Dark-Themed Scrollbar */
@@ -63,234 +127,249 @@
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       font-family: var(--font-sans);
       background: var(--bg);
-      background-image: 
-        radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.12) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.1) 0px, transparent 50%);
-      background-attachment: fixed;
       color: var(--text-main);
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
+      padding-bottom: env(safe-area-inset-bottom);
+      position: relative;
+    }
+    body:before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(900px 400px at 15% -5%, rgba(52, 211, 153, 0.07), transparent 70%),
+        radial-gradient(700px 400px at 85% 0%, rgba(130, 182, 232, 0.05), transparent 70%);
+    }
+    body:after {
+      content: "";
+      position: fixed;
+      inset: -160px;
+      z-index: 0;
+      pointer-events: none;
+      animation: patDrift 130s linear infinite;
+      opacity: 0.65;
+      background-image:
+        linear-gradient(var(--pat-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--pat-line) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.95), transparent 90%);
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.95), transparent 90%);
+    }
+    @keyframes patDrift {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(64px, 64px, 0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      body:after { animation: none !important; opacity: 0.35; }
+      *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
     }
 
     /* Header & Nav */
     header {
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--card-border);
+      background: var(--header-bg);
+      backdrop-filter: blur(16px) saturate(120%);
+      -webkit-backdrop-filter: blur(16px) saturate(120%);
+      border-bottom: 1px solid var(--border-soft);
       position: sticky;
       top: 0;
       z-index: 50;
-      padding: 12px 24px;
+      padding: 0 20px;
     }
     .nav-container {
-      max-width: 1300px;
+      max-width: 1180px;
       margin: 0 auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
+      gap: 14px;
       flex-wrap: wrap;
+      min-height: 60px;
+      padding: 8px 0;
     }
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      flex-shrink: 0;
+      text-decoration: none;
+      color: inherit;
     }
-    /* RIST Authentic Bonded Streams Icon */
-    .brand-icon {
-      width: 36px;
-      height: 36px;
-      background: linear-gradient(135deg, #0ea5e9, #6366f1);
-      border-radius: 10px;
-      display: grid;
-      place-items: center;
-      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
-      position: relative;
-      overflow: hidden;
+    .mark {
+      width: 44px;
+      height: 20px;
+      flex-shrink: 0;
+      display: block;
     }
-    .brand-icon::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 100%);
+    .mark img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: left center;
     }
-    .brand-icon svg {
-      width: 22px;
-      height: 22px;
-      fill: none;
-      stroke: #ffffff;
-      stroke-width: 2.2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
-    }
-    .brand-text h1 {
-      font-size: 17px;
-      font-weight: 800;
-      letter-spacing: -0.4px;
+    [data-theme="light"] .mark img { filter: invert(1); }
+    .brand-txt {
       display: flex;
-      align-items: center;
-      gap: 6px;
+      flex-direction: column;
+      line-height: 1.1;
     }
-    .brand-text .badge-rist {
-      background: linear-gradient(90deg, #06b6d4, #6366f1);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      font-weight: 900;
-      letter-spacing: 0.5px;
-    }
-    .brand-text .sub-brand {
-      font-size: 11px;
+    .brand-txt b {
+      font-size: 13.5px;
       font-weight: 600;
-      color: var(--text-muted);
-      letter-spacing: 0.2px;
+      letter-spacing: .34em;
+      color: var(--brand-ivory);
+    }
+    .brand-txt span {
+      font-size: 9px;
+      color: var(--faint);
+      font-family: var(--font-mono);
+      letter-spacing: .26em;
+      margin-top: 3px;
     }
 
-        /* IP DROPDOWN SELECTOR */
+    /* Host selector. One row, hairline border, mono value: the host is a
+       technical parameter, so it reads as a parameter and not as chrome. */
     .ip-selector-bar {
       display: flex;
       align-items: center;
-      background: rgba(0, 0, 0, 0.45);
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      padding: 4px 8px;
       gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 4px 9px;
+      min-width: 0;
     }
     .ip-label {
-      font-size: 11px;
-      font-weight: 700;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      letter-spacing: .09em;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--text-muted);
+      color: var(--faint);
       white-space: nowrap;
     }
     .ip-select {
-      background: rgba(255, 255, 255, 0.05);
-      color: #38bdf8;
-      border: 1px solid rgba(6, 182, 212, 0.35);
-      padding: 6px 12px;
-      border-radius: 8px;
+      background: transparent;
+      color: var(--accent);
+      border: 0;
+      padding: 4px 2px;
       font-family: var(--font-mono);
       font-size: 12.5px;
-      font-weight: 600;
-      outline: none;
+      font-weight: 500;
       cursor: pointer;
-      min-width: 220px;
-      transition: all 0.15s;
+      min-width: 0;
+      max-width: 240px;
     }
-    .ip-select:hover, .ip-select:focus {
-      border-color: #38bdf8;
-      box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+    .ip-select:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 4px;
     }
     .ip-select option {
-      background: #0f172a;
-      color: #f8fafc;
+      background: var(--surface);
+      color: var(--text);
       font-family: var(--font-mono);
-      padding: 6px;
     }
     .ip-custom-field {
       display: none;
-      background: rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(6, 182, 212, 0.5);
-      border-radius: 8px;
-      padding: 6px 12px;
-      color: #38bdf8;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      color: var(--text);
       font-family: var(--font-mono);
       font-size: 12px;
-      outline: none;
       width: 170px;
     }
+    .ip-custom-field:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+    .ip-custom-field:invalid { border-color: var(--danger); }
 
-            /* Modern Header Badges & Pill Styling */
     .header-badges {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
     .pill {
       display: inline-flex;
       align-items: center;
       gap: 7px;
       font-size: 12px;
-      font-weight: 600;
-      padding: 6px 14px;
-      border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--card-border);
-      color: #cbd5e1;
-      font-family: var(--font-sans);
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      user-select: none;
+      font-family: var(--font-mono);
+      padding: 6px 11px;
+      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      white-space: nowrap;
     }
-    .pill svg {
-      width: 14px;
-      height: 14px;
-      opacity: 0.75;
-    }
-    .pill:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.15);
-    }
-    
-    /* Live Pill Dynamics */
-    .pill-live {
-      border-color: rgba(255, 255, 255, 0.08);
-    }
-    .pill-live.is-active {
-      background: rgba(16, 185, 129, 0.12);
-      border-color: rgba(16, 185, 129, 0.4);
-      color: #34d399;
-      box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);
-    }
+    .pill svg { width: 13px; height: 13px; flex-shrink: 0; color: var(--faint); }
     .pill-dot {
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #64748b;
-      transition: all 0.3s ease;
+      background: var(--faint);
+      flex-shrink: 0;
     }
-    .pill-live.is-active .pill-dot {
-      background: #10b981;
-      box-shadow: 0 0 10px #10b981;
-      animation: pulse 1.8s infinite;
+    /* The dot only renders live state: emerald when a stream is actually
+       receiving, muted when none is. It never pulses without a live stream. */
+    .pill.is-live { color: var(--accent); border-color: var(--accent-dim); background: var(--accent-dim); }
+    .pill.is-live .pill-dot { background: var(--accent); }
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .16s, color .16s, border-color .16s;
+      flex-shrink: 0;
     }
+    .icon-btn:hover { background: var(--surface-2); color: var(--text); }
+    .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .icon-btn svg { width: 16px; height: 16px; }
+    .icon-btn .ico-sun { display: none; }
+    [data-theme="light"] .icon-btn .ico-sun { display: block; }
+    [data-theme="light"] .icon-btn .ico-moon { display: none; }
+    /* Live pill: emerald only while a stream is receiving, no idle pulse. */
+    .pill.is-live .pill-dot { background: var(--accent); }
 
-    /* Auth Logout Pill Button */
+    /* Lock button stays quiet until hover: it is destructive, not primary. */
     .header-auth-btn {
-      background: rgba(239, 68, 68, 0.08);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      border-radius: 9999px;
-      padding: 6px 14px;
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 11px;
       font-size: 12px;
-      font-weight: 600;
+      height: 36px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
       font-family: var(--font-sans);
-      transition: all 0.2s ease;
+      transition: background .16s, color .16s, border-color .16s;
+      flex-shrink: 0;
     }
-    .header-auth-btn svg {
-      width: 14px;
-      height: 14px;
-      stroke: currentColor;
-    }
-    .header-auth-btn:hover {
-      background: #ef4444;
-      color: #ffffff;
-      border-color: #ef4444;
-      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
-      transform: translateY(-1px);
-    }
+    .header-auth-btn svg { width: 14px; height: 14px; stroke: currentColor; }
+    .header-auth-btn:hover { color: var(--danger); border-color: var(--danger); background: var(--surface-2); }
+    .header-auth-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-    /* Start / Stop Toggle Button */
+    /* Start / stop control on each card. */
     .btn-toggle {
       background: transparent;
-      color: var(--text-muted);
+      color: var(--muted);
       padding: 6px;
       border-radius: 8px;
       cursor: pointer;
@@ -300,31 +379,19 @@
       justify-content: center;
       transition: all 0.15s;
     }
-    .btn-toggle.is-active:hover {
-      color: #f59e0b;
-      background: rgba(245, 158, 11, 0.12);
-    }
-    .btn-toggle.is-inactive {
-      color: var(--success);
-    }
-    .btn-toggle.is-inactive:hover {
-      color: #34d399;
-      background: rgba(16, 185, 129, 0.12);
-    }
+    .btn-toggle.is-active:hover { color: var(--amber); background: rgba(229, 189, 98, 0.12); }
+    .btn-toggle.is-inactive { color: var(--accent); }
+    .btn-toggle.is-inactive:hover { background: var(--accent-dim); }
 
-    /* Card inactive state */
-    .card.is-paused {
-      border-top: 3px solid rgba(245, 158, 11, 0.6);
-      opacity: 0.7;
-    }
+    /* A paused channel dims and marks itself with an amber rule, not a full
+       accent stripe: the state is informational, the live state stays king. */
+    .card.is-paused { opacity: 0.72; }
     .status-badge.paused {
-      background: rgba(245, 158, 11, 0.12);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.3);
+      background: rgba(229, 189, 98, 0.1);
+      color: var(--amber);
+      border: 1px solid rgba(229, 189, 98, 0.28);
     }
-    .status-badge.paused .dot {
-      background: #f59e0b;
-    }
+    .status-badge.paused .dot { background: var(--amber); }
 
     .form-hint {
       font-size: 11px;
@@ -337,14 +404,11 @@
       padding: 0 2px;
     }
 
-    /* Auth Lockscreen Overlay */
+    /* Auth lockscreen gate */
     .auth-overlay {
       position: fixed;
       inset: 0;
       background: var(--bg);
-      background-image: 
-        radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.12) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.1) 0px, transparent 50%);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -354,59 +418,76 @@
     }
     .auth-overlay.hidden { display: none !important; }
     .auth-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 40px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 32px;
       width: 100%;
       max-width: 420px;
       text-align: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
     }
     .auth-icon {
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 20px;
-      background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(99, 102, 241, 0.2));
-      border: 1px solid rgba(6, 182, 212, 0.4);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #38bdf8;
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      color: var(--accent);
     }
-    .auth-card h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
-    .auth-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; line-height: 1.5; }
-    .auth-input-group { position: relative; margin-bottom: 24px; }
+    .auth-card h2 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: .02em;
+      margin-bottom: 6px;
+      color: var(--brand-ivory);
+    }
+    .auth-card p {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 20px;
+      line-height: 1.55;
+    }
+    .auth-card p code {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--term-fg);
+      background: var(--term-bg);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .auth-input-group { position: relative; margin-bottom: 18px; }
     .auth-input-group input {
       width: 100%;
-      background: rgba(0,0,0,0.4);
-      border: 1px solid var(--card-border);
-      padding: 14px 16px;
-      border-radius: 12px;
-      color: #fff;
-      font-size: 15px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 11px 14px;
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13.5px;
       font-family: var(--font-mono);
       text-align: center;
-      transition: all 0.2s;
+      transition: border-color .15s;
     }
     .auth-input-group input:focus {
       outline: none;
-      border-color: #38bdf8;
-      box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.15);
+      border-color: var(--accent);
     }
-        .auth-card .btn-primary { width: 100%; padding: 12px; font-size: 15px; }
+    .auth-card .btn-primary { width: 100%; padding: 10px 14px; font-size: 13.5px; }
 
-    /* In-Card Feedback Message */
+    /* In-card feedback message */
     .auth-msg {
       display: none;
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 18px;
-      animation: msgIn 0.2s ease;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      margin-bottom: 16px;
+      animation: msgIn 0.16s ease;
     }
     @keyframes msgIn {
       from { opacity: 0; transform: translateY(-4px); }
@@ -417,82 +498,69 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid rgba(239, 68, 68, 0.35);
-      color: #fca5a5;
+      background: rgba(229, 120, 106, 0.12);
+      border: 1px solid rgba(229, 120, 106, 0.35);
+      color: var(--danger);
     }
     .auth-msg.success {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.35);
-      color: #6ee7b7;
+      background: var(--accent-dim);
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      color: var(--accent);
     }
 
-    /* Shake animation on invalid key */
     .auth-shake {
-      animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+      animation: shake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
     }
     @keyframes shake {
       10%, 90% { transform: translate3d(-2px, 0, 0); }
       20%, 80% { transform: translate3d(3px, 0, 0); }
-      30%, 50%, 70% { transform: translate3d(-5px, 0, 0); }
-      40%, 60% { transform: translate3d(5px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+      40%, 60% { transform: translate3d(4px, 0, 0); }
     }
 
-    .header-auth-btn {
-      background: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      border-radius: 8px;
-      padding: 6px 10px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s;
-    }
-    .header-auth-btn:hover { background: #ef4444; color: #fff; }
-
-    /* Main Container */
+    /* Main Container: max-width 1180px matches the Ashveil wrap standard */
     main {
-      max-width: 1300px;
+      max-width: 1180px;
       margin: 0 auto;
-      padding: 30px 20px 80px;
+      padding: 24px 20px 72px;
+      position: relative;
+      z-index: 1;
     }
 
-    /* Quick Info */
+    /* Banner: tactical terminal style */
     .quick-info {
-      background: linear-gradient(90deg, rgba(6, 182, 212, 0.08), rgba(99, 102, 241, 0.08));
-      border: 1px solid rgba(6, 182, 212, 0.2);
-      border-radius: 12px;
-      padding: 12px 18px;
-      margin-bottom: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
+      gap: 12px;
       flex-wrap: wrap;
     }
     .quick-info-text {
-      font-size: 13px;
-      color: #cbd5e1;
+      font-size: 12px;
+      color: var(--muted);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
     }
-    .quick-info-text strong { color: #38bdf8; }
+    .quick-info-text svg { flex-shrink: 0; }
+    .quick-info-text strong { color: var(--text); font-weight: 600; }
     .quick-info-text code {
-      background: rgba(0, 0, 0, 0.35);
-      padding: 2px 6px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 1px 6px;
       border-radius: 4px;
       font-family: var(--font-mono);
-      font-size: 12px;
-      color: #7dd3fc;
+      font-size: 11px;
+      color: var(--brand-ivory);
     }
 
     /* Toolbar */
@@ -500,43 +568,60 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 22px;
-      gap: 16px;
+      margin-bottom: 18px;
+      gap: 14px;
       flex-wrap: wrap;
     }
-    .toolbar h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; }
+    .toolbar h2 {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
 
-    /* Buttons */
+    /* Buttons: tactical, flat, high contrast */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 7px;
       font-family: var(--font-sans);
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 600;
-      padding: 9px 18px;
-      border-radius: 10px;
+      padding: 8px 14px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background .16s, border-color .16s, color .16s;
       border: 1px solid transparent;
       user-select: none;
     }
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .btn-primary {
-      background: linear-gradient(135deg, #0ea5e9, #6366f1);
-      color: #fff;
-      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3);
+      background: var(--accent);
+      color: #0d281e;
+      border-color: var(--accent);
     }
     .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(6, 182, 212, 0.45);
+      background: #5eead4;
+      border-color: #5eead4;
+    }
+    [data-theme="light"] .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    [data-theme="light"] .btn-primary:hover {
+      background: #0f6e49;
     }
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: var(--card-border);
-      color: var(--text-main);
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--text);
     }
-    .btn-secondary:hover { background: rgba(255, 255, 255, 0.08); }
+    .btn-secondary:hover {
+      background: var(--surface-2);
+      border-color: #3b443f;
+    }
         .card-actions {
       display: flex;
       align-items: center;
@@ -871,43 +956,40 @@
 
   <header>
     <div class="nav-container">
-      <div class="brand">
-        <!-- Authentic RIST Convergent Multipath Streaming Icon -->
-        <div class="brand-icon" title="Reliable Internet Stream Transport">
-          <svg viewBox="0 0 24 24">
-            <!-- Multipath convergent flow lines representing RIST packet bonding -->
-            <path d="M4 7h7c3 0 5 2 5 5s-2 5-5 5H4" />
-            <path d="M4 12h12c2.5 0 4 1.5 4 3.5s-1.5 3.5-4 3.5H4" opacity="0.6"/>
-            <!-- Triangle Play/Transmit arrow -->
-            <polygon points="17 9 22 12 17 15" fill="#ffffff" stroke="none" />
-          </svg>
-        </div>
-        <div class="brand-text">
-          <h1><span class="badge-rist">RIST</span> Multi-Receiver</h1>
-          <div class="sub-brand">Reliable Internet Stream Transport</div>
-        </div>
+      <div class="brand" id="brandLockup">
+        <span class="mark" aria-hidden="true">
+          <img id="brandMark" src="/assets/ashveil-veil.png" alt="" width="44" height="20" onerror="this.style.display='none'" />
+        </span>
+        <span class="brand-txt">
+          <b id="brandName">RIST</b>
+          <span id="brandSub">MULTI RECEIVER</span>
+        </span>
       </div>
-      
-            <!-- ACTIVE IP DROPDOWN ONLY -->
+
+      <!-- ACTIVE IP DROPDOWN ONLY -->
       <div class="ip-selector-bar">
-        <span class="ip-label">Stream host:</span>
+        <label class="ip-label" for="ipSelect">Stream host:</label>
         <select id="ipSelect" class="ip-select" onchange="onIpSelectChange()">
           <option value="detecting">Detecting…</option>
         </select>
-        <input type="text" id="ipCustomInput" class="ip-custom-field" placeholder="hostname or IP, e.g. 100.x.y.z (Tailscale)" oninput="onCustomIpInput()" />
+        <input type="text" id="ipCustomInput" class="ip-custom-field" placeholder="hostname or IP, e.g. 100.x.y.z (Tailscale)" oninput="onCustomIpInput()" aria-label="Custom stream host" />
       </div>
 
-            <div class="header-badges">
-        <div class="pill" id="totalStreams" title="Total Configured RIST Channels">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+      <div class="header-badges">
+        <div class="pill" id="totalStreams" title="Total configured RIST channels">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
           <span id="totalStreamsVal">0 Channels</span>
         </div>
-        <div class="pill pill-live" id="liveStreams" title="Active Streams Status">
-          <span class="pill-dot"></span>
+        <div class="pill" id="liveStreams" title="Active streams status">
+          <span class="pill-dot" aria-hidden="true"></span>
           <span id="liveStreamsVal">0 Live</span>
         </div>
-        <button class="header-auth-btn" onclick="logout()" title="Lock dashboard & clear API key session">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" aria-label="Aktifkan mode terang" title="Aktifkan mode terang">
+          <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+        </button>
+        <button class="header-auth-btn" onclick="logout()" title="Lock dashboard and clear the API key session">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
           Lock
         </button>
       </div>
@@ -1309,11 +1391,7 @@
       const liveVal = document.getElementById('liveStreamsVal');
       if (liveVal) liveVal.textContent = `${totalLive} Live`;
       if (livePill) {
-        if (totalLive > 0) {
-          livePill.classList.add('is-active');
-        } else {
-          livePill.classList.remove('is-active');
-        }
+        livePill.classList.toggle('is-live', totalLive > 0);
       }
 
       if (!streams.length) {
@@ -1530,7 +1608,29 @@
     document.getElementById('addModal').addEventListener('click', (e) => { if (e.target === document.getElementById('addModal')) closeModal(); });
 
     let pollInterval = null;
+
+    // Theme: dark is the brand default (control-room surface). The choice is
+    // persisted under a namespaced key; the <head> bootstrap already applied it.
+    function applyTheme(theme) {
+      const next = theme === 'light' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('ashveil-theme', next); } catch (e) {}
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', next === 'light' ? '#eef1ed' : '#101211');
+      const btn = document.getElementById('themeToggle');
+      if (btn) {
+        const label = next === 'light' ? 'Aktifkan mode gelap' : 'Aktifkan mode terang';
+        btn.setAttribute('aria-label', label);
+        btn.setAttribute('title', label);
+      }
+    }
+
+    function toggleTheme() {
+      applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+    }
+
     function initializeDashboard() {
+      applyTheme(document.documentElement.getAttribute('data-theme'));
       hideAuthGate();
       if (pollInterval) clearInterval(pollInterval);
       loadSystemIps().then(() => {
