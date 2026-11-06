@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RIST Multi Receiver Dashboard</title>
   <meta name="theme-color" content="#101211" />
+  <link rel="icon" href="/brand-mark.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/brand-mark.svg" />
   <script>
     // Runs before the stylesheet so a stored light choice never flashes dark.
     (function () {
@@ -1008,7 +1010,7 @@
     <div class="nav-container">
       <div class="brand" id="brandLockup">
         <span class="mark" aria-hidden="true">
-          <img id="brandMark" src="/assets/ashveil-veil.png" alt="" width="44" height="20" onerror="this.style.display='none'" />
+          <img id="brandMark" src="/brand-mark.svg" alt="" width="44" height="20" />
         </span>
         <span class="brand-txt">
           <b id="brandName">RIST</b>
@@ -1662,6 +1664,69 @@
 
     let pollInterval = null;
 
+    // ---------------------------------------------------------------
+    // Runtime branding. The source tree ships a neutral identity; a deployment
+    // overrides it through GET /api/brand. Everything here writes through
+    // textContent and attribute setters, never innerHTML, so brand values cannot
+    // inject markup.
+    // ---------------------------------------------------------------
+
+    function paintBrand(cfg) {
+      if (!cfg || typeof cfg !== 'object') return;
+
+      const name = typeof cfg.name === 'string' ? cfg.name.trim() : '';
+      const tagline = typeof cfg.tagline === 'string' ? cfg.tagline.trim() : '';
+
+      const nameEl = document.getElementById('brandName');
+      const subEl = document.getElementById('brandSub');
+      if (nameEl && name) nameEl.textContent = name.slice(0, 24);
+      if (subEl && tagline) subEl.textContent = tagline.slice(0, 32).toUpperCase();
+
+      document.title = name && tagline ? `${name} ${tagline}` : (name || 'RIST Multi Receiver');
+
+      // Accent is operator-supplied, so it is written as a CSS variable rather
+      // than into a style attribute of a specific element.
+      const accent = typeof cfg.accent === 'string' ? cfg.accent : '';
+      const root = document.documentElement;
+      if (/^#[0-9a-f]{6}$/i.test(accent)) {
+        root.style.setProperty('--accent', accent);
+        if (window.CSS && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red, blue)')) {
+          root.style.setProperty('--accent-dim', `color-mix(in srgb, ${accent} 18%, var(--surface))`);
+          root.style.setProperty('--accent-on-dim', `color-mix(in srgb, ${accent} 78%, var(--text))`);
+        }
+      }
+
+      // Assets: try to decode before assigning so a missing file keeps the
+      // neutral mark instead of showing a broken-image box.
+      const markEl = document.getElementById('brandMark');
+      if (markEl && typeof cfg.logoPath === 'string' && cfg.logoPath) {
+        const probe = new Image();
+        probe.onload = () => {
+          markEl.src = cfg.logoPath;
+          markEl.style.display = '';
+        };
+        probe.onerror = () => { /* keep the neutral mark */ };
+        probe.src = cfg.logoPath;
+      }
+
+      const icon = document.querySelector('link[rel="icon"]');
+      if (icon && typeof cfg.faviconPath === 'string' && cfg.faviconPath) {
+        const favProbe = new Image();
+        favProbe.onload = () => { icon.href = cfg.faviconPath; };
+        favProbe.src = cfg.faviconPath;
+      }
+    }
+
+    async function loadBrand() {
+      try {
+        const res = await fetch('/api/brand', { cache: 'no-store' });
+        if (!res.ok) return;
+        paintBrand(await res.json());
+      } catch (err) {
+        // Branding is cosmetic: a failure leaves the neutral defaults in place.
+      }
+    }
+
     // Theme: dark is the brand default (control-room surface). The choice is
     // persisted under a namespaced key; the <head> bootstrap already applied it.
     function applyTheme(theme) {
@@ -1695,6 +1760,7 @@
     }
 
     // On Load Check
+    loadBrand(); // paints before/independent of auth: the lock screen is branded too
     if (currentApiKey) {
       // Background validation, UI shows immediately but will lock out if key expired/wrong
       initializeDashboard();

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="44" height="20" viewBox="0 0 44 20" role="img" aria-labelledby="title">
+  <title id="title">RIST Multi Receiver</title>
+  <g fill="none" stroke="#f4f4ec" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 5h13c3 0 5 2.1 5 5s-2 5-5 5H2"/>
+    <path d="M2 10h25c2.5 0 4.5 1.7 4.5 4s-2 4-4.5 4H2" opacity=".62"/>
+    <path d="m31 6 9 4-9 4Z" fill="#f4f4ec" stroke="none"/>
+  </g>
+</svg>

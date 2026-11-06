@@ -8,6 +8,7 @@ const config = require('./config');
 const store = require('./services/streamStore');
 const procManager = require('./services/processManager');
 const statsCollector = require('./services/statsCollector');
+const brand = require('./services/brand');
 
 // ==========================================
 // API KEY AUTHENTICATION INITIALIZATION
@@ -210,6 +211,33 @@ function requireApiKey(req, res, next) {
 // Protect all /api/streams and /api/system-info routes
 app.use('/api/streams', requireApiKey);
 app.use('/api/system-info', requireApiKey);
+app.use('/api/brand', (req, res, next) => {
+    // Reading brand info is public so the unauthenticated lock screen paints the
+    // configured identity; writing brand info requires the management API key.
+    if (req.method === 'GET') return next();
+    return requireApiKey(req, res, next);
+});
+
+// Runtime branding endpoints.
+// GET is public and no-store so operator updates paint on the next refresh.
+app.get('/api/brand', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(brand.getConfig());
+});
+
+app.post('/api/brand', (req, res) => {
+    const updated = brand.saveConfig(req.body);
+    res.json(updated);
+});
+
+// Serve brand-uploaded assets from data/brand/ through the same origin.
+app.get('/brand/:file', (req, res) => {
+    const asset = brand.resolveAsset(req.originalUrl);
+    if (!asset) return res.status(404).end();
+    res.setHeader('Content-Type', brand.contentTypeFor(asset.full));
+    res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    fs.createReadStream(asset.full).pipe(res);
+});
 
 let streams = store.getAll();
 

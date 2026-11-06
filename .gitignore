@@ -6,3 +6,5 @@ data/streams.json
 Thumbs.db
 
 data/.apikey
+data/brand.json
+data/brand/
