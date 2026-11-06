@@ -33,11 +33,11 @@
       --text: #f4f4ec;
       --muted: #c4c8c4;
       --faint: #9fa5a0;
-      --accent: #34d399;
+      --accent: var(--brand-accent, #34d399);
       --accent-dim: #12392f;
       /* Text sitting on --accent-dim. Kept separate from --accent because the
          small mono badge needs 4.5:1 against that tinted surface in both themes. */
-      --accent-on-dim: #34d399;
+      --accent-on-dim: var(--brand-accent, #34d399);
       --brand-ivory: #f0f0e8;
       --brand-silver: #c0c0b8;
       --blue: #82b6e8;
@@ -145,6 +145,9 @@
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* Pointer cursor on all operable controls; not-allowed on disabled. */
+    a[href], button, select, label[for], summary { cursor: pointer; }
+    button:disabled, input:disabled, select:disabled { cursor: not-allowed; }
     html { scroll-behavior: smooth; }
     body {
       font-family: var(--font-sans);
@@ -238,11 +241,12 @@
       flex-direction: column;
       line-height: 1.1;
     }
-    .brand-txt b {
+    .brand-txt h1 {
       font-size: 13.5px;
       font-weight: 600;
       letter-spacing: .34em;
       color: var(--brand-ivory);
+      margin: 0;
     }
     .brand-txt span {
       font-size: 9px;
@@ -310,6 +314,7 @@
       outline-offset: 1px;
     }
     .ip-custom-field:invalid { border-color: var(--danger); }
+    .ip-custom-field[aria-invalid="true"] { border-color: var(--danger); }
 
     .header-badges {
       display: flex;
@@ -478,6 +483,16 @@
       border-radius: 4px;
     }
     .auth-input-group { position: relative; margin-bottom: 18px; }
+    .auth-label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--faint);
+      margin-bottom: 6px;
+      text-align: left;
+    }
     .auth-input-group input {
       width: 100%;
       background: var(--surface-2);
@@ -657,6 +672,10 @@
       background: transparent;
       color: var(--faint);
       padding: 6px;
+      /* 27px of visible icon sat inside a ~39px hit box: the box, not the icon,
+         carries the touch target. */
+      min-width: 40px;
+      min-height: 34px;
       border-radius: 6px;
       cursor: pointer;
       border: none;
@@ -845,7 +864,8 @@
       border: 1px solid var(--border);
       color: var(--muted);
       border-radius: 5px;
-      padding: 3px 8px;
+      padding: 4px 10px;
+      min-height: 28px;
       font-family: var(--font-mono);
       font-size: 10px;
       letter-spacing: .06em;
@@ -968,7 +988,7 @@
       header .nav-container { flex-direction: column; align-items: stretch; gap: 10px; }
       .brand { min-width: 0; }
       .brand-txt span { display: none; }
-      .brand-txt b { font-size: 12px; letter-spacing: .25em; }
+      .brand-txt h1 { font-size: 12px; letter-spacing: .25em; }
       /* The selector must shrink with the viewport. A fixed min-width here
          pushed the whole header past a 360px screen. */
       .ip-selector-bar { justify-content: space-between; flex-wrap: wrap; min-width: 0; }
@@ -1000,6 +1020,7 @@
       <p>Please enter your API Key to access the dashboard. Find the key in the terminal console or by running <code>cat data/.apikey</code></p>
       <div id="authMsg" class="auth-msg"></div>
       <div class="auth-input-group">
+        <label class="auth-label" for="authKeyInput">API key</label>
         <input type="password" id="authKeyInput" placeholder="Enter API Key (32 chars hex)" onkeypress="if(event.key === 'Enter') checkAuthKey()" autocomplete="off" />
       </div>
       <button class="btn btn-primary" id="authBtn" onclick="checkAuthKey()">Unlock Dashboard</button>
@@ -1013,7 +1034,7 @@
           <img id="brandMark" src="/brand-mark.svg" alt="" width="44" height="20" />
         </span>
         <span class="brand-txt">
-          <b id="brandName">RIST</b>
+          <h1 id="brandName">RIST</h1>
           <span id="brandSub">MULTI RECEIVER</span>
         </span>
       </div>
@@ -1071,17 +1092,17 @@
     <div class="stream-grid" id="grid"></div>
   </main>
 
-  <div class="modal-overlay" id="addModal">
+  <div class="modal-overlay" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
     <div class="modal-card">
-      <h3 class="modal-title">Create RIST Channel</h3>
+      <h2 class="modal-title" id="addModalTitle">Create RIST Channel</h2>
       <p class="modal-sub">Allocate new UDP port pair & encryption credentials</p>
 
       <div class="form-group">
-        <label>Channel Name</label>
+        <label for="streamName">Channel Name</label>
         <input type="text" id="streamName" class="form-control" placeholder="e.g. Camera IRL 1" autocomplete="off" />
       </div>
       <div class="form-group">
-        <label>Publisher Username</label>
+        <label for="pubUser">Publisher Username</label>
         <input type="text" id="pubUser" class="form-control" placeholder="user" autocomplete="off" />
         <div class="form-hint">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -1089,7 +1110,7 @@
         </div>
       </div>
       <div class="form-group">
-        <label>Publisher Password</label>
+        <label for="pubPass">Publisher Password</label>
         <input type="text" id="pubPass" class="form-control" placeholder="secretpassword" autocomplete="off" />
         <div class="form-hint">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -1105,14 +1126,14 @@
   </div>
 
   <!-- Edit Auth Modal -->
-  <div class="modal-overlay" id="editModal">
+  <div class="modal-overlay" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
     <div class="modal-card">
-      <h3 class="modal-title">Edit Publisher Auth</h3>
+      <h2 class="modal-title" id="editModalTitle">Edit Publisher Auth</h2>
       <p class="modal-sub">Update RIST stream credentials (auto-restarts stream)</p>
 
       <input type="hidden" id="editStreamId" />
       <div class="form-group">
-        <label>Publisher Username</label>
+        <label for="editPubUser">Publisher Username</label>
         <input type="text" id="editPubUser" class="form-control" placeholder="user" autocomplete="off" />
         <div class="form-hint">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -1120,7 +1141,7 @@
         </div>
       </div>
       <div class="form-group">
-        <label>Publisher Password</label>
+        <label for="editPubPass">Publisher Password</label>
         <input type="text" id="editPubPass" class="form-control" placeholder="secretpassword" autocomplete="off" />
         <div class="form-hint">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -1158,6 +1179,10 @@
             isHandlingUnauthorized = true;
             localStorage.removeItem('rist_api_key');
             currentApiKey = '';
+            // Stop polling on a dead session: without this the interval keeps
+            // firing and each 401 counts toward the brute-force lockout.
+            if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+            lastStreamsSig = '';
             showAuthGate();
         }
         throw new Error('Unauthorized');
@@ -1179,6 +1204,11 @@
     function logout() {
       localStorage.removeItem('rist_api_key');
       currentApiKey = '';
+      // Stop the poll before locking: a live interval would keep calling the API
+      // with an empty key, and five of those lock the operator's own IP out for
+      // ten minutes.
+      if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+      lastStreamsSig = '';
       showAuthGate();
     }
 
@@ -1371,10 +1401,21 @@
       return currentSelectedIp || automaticStreamHost();
     }
 
+    // Host only. A bare `host:port` used to pass and produced
+    // rist://host:8000:2030, so a colon is only legal inside a bracketed IPv6
+    // literal.
+    function isValidHost(value) {
+      if (!value || value.length > 253) return false;
+      if (/^\[[0-9a-fA-F:.]+\]$/.test(value)) return true;
+      if (value.includes(':')) return false;
+      return /^[a-zA-Z0-9.\-]+$/.test(value);
+    }
+
     function normalizeCustomHost(value, input) {
       const host = value.trim();
-      const valid = !host || (host.length <= 253 && /^[a-zA-Z0-9.:[\]-]+$/.test(host));
-      input.setCustomValidity(valid ? '' : 'Use a hostname or IP only (no protocol, port, path, or query).');
+      const valid = !host || isValidHost(host);
+      input.setCustomValidity(valid ? '' : 'Hostname or IP only: no protocol, port, path, or query.');
+      input.setAttribute('aria-invalid', valid ? 'false' : 'true');
       return valid ? host : '';
     }
 
@@ -1406,18 +1447,51 @@
     }
     // ==========================================
 
+    // Two signatures instead of one:
+    //  - structSig covers only fields that change the DOM shape. A live stream's
+    //    bitrate/RTT jitters every poll, and hashing the whole payload made the
+    //    grid rebuild every 2.5s (killing text selection and the copy buttons).
+    //  - Metric-only changes patch the numbers in place.
+    function streamStructSig(data) {
+      return JSON.stringify(data.map(s => [
+        s.id, s.name, s.username, s.receivePort, s.forwardPort,
+        s.streamId, s.playbackSecret, Boolean(s.liveStats && s.liveStats.online)
+      ]));
+    }
+
+    function patchMetrics(data) {
+      data.forEach(s => {
+        const card = document.querySelector(`.card[data-sid="${s.id}"]`);
+        if (!card) return;
+        const stats = s.liveStats || {};
+        const set = (metric, text) => {
+          const el = card.querySelector(`[data-metric="${metric}"]`);
+          if (el && el.textContent !== text) el.textContent = text;
+        };
+        set('bitrate', formatBitrate(stats.bitrate));
+        set('rtt', stats.rtt ? `${stats.rtt} ms` : '-');
+        set('quality', (stats.online && stats.quality !== undefined) ? `${stats.quality}%` : '-');
+      });
+    }
+
     async function loadStreams() {
       try {
         const res = await apiFetch('/api/streams');
         const data = await res.json();
-        // Skip re-render when nothing changed; a full innerHTML rebuild every
-        // 2.5s kills text selection and makes the copy buttons flicker.
-        const sig = JSON.stringify(data);
-        if (sig === lastStreamsSig) return;
-        lastStreamsSig = sig;
+        const sig = streamStructSig(data);
         streams = data;
+        if (sig === lastStreamsSig) {
+          patchMetrics(data);
+          return;
+        }
         renderGrid();
-      } catch (err) {}
+        // Commit the signature only after a successful render, so a render error
+        // cannot leave the grid stuck on stale markup forever.
+        lastStreamsSig = sig;
+      } catch (err) {
+        // 401 is handled inside apiFetch (gate + poll stop). Other failures leave
+        // the last good view in place and surface on the next action.
+      }
     }
 
     function formatBitrate(bps) {
@@ -1483,47 +1557,47 @@
         const playDisplay = playUrl || '(no host available, check DNS/IP)';
 
         return `
-          <div class="card ${isLive ? 'is-live' : 'is-offline'}">
+          <div class="card ${isLive ? 'is-live' : 'is-offline'}" data-sid="${s.id}">
             <div class="card-header">
               <div class="card-title-group">
                 <span class="status-badge ${isLive ? 'live' : 'offline'}"><span class="dot"></span>${isLive ? 'Live' : 'Offline'}</span>
                 <span class="stream-name" title="${safeName}">${safeName}</span>
               </div>
                             <div class="card-actions">
-                <button class="btn-icon-ghost" title="Edit Publisher Auth" onclick="openEditModal('${s.id}')">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                <button class="btn-icon-ghost" title="Edit Publisher Auth" aria-label="Edit publisher auth for ${safeName}" onclick="openEditModal('${s.id}')">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
                 </button>
-                <button class="btn-icon-ghost danger" title="Delete stream" onclick="removeStream('${s.id}')">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <button class="btn-icon-ghost danger" title="Delete stream" aria-label="Delete ${safeName}" onclick="removeStream('${s.id}')">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </button>
               </div>
             </div>
             <div class="metrics-row">
-              <div class="metric-item"><div class="metric-value highlight">${bitrateText}</div><div class="metric-label">Bitrate</div></div>
-              <div class="metric-item"><div class="metric-value">${rttText}</div><div class="metric-label">RTT</div></div>
-              <div class="metric-item"><div class="metric-value">${qualityText}</div><div class="metric-label">Quality</div></div>
+              <div class="metric-item"><div class="metric-value highlight" data-metric="bitrate">${bitrateText}</div><div class="metric-label">Bitrate</div></div>
+              <div class="metric-item"><div class="metric-value" data-metric="rtt">${rttText}</div><div class="metric-label">RTT</div></div>
+              <div class="metric-item"><div class="metric-value" data-metric="quality">${qualityText}</div><div class="metric-label">Quality</div></div>
             </div>
             <div class="info-table">
               <div class="info-cell"><span class="info-title">Ingest (Recv)</span><span class="info-detail">${s.receivePort} / UDP</span></div>
               <div class="info-cell"><span class="info-title">Output (Play)</span><span class="info-detail">${s.forwardPort} / UDP</span></div>
               <div class="info-cell"><span class="info-title">Publisher Auth</span><span class="info-detail">${safeUsername} : ••••</span></div>
-              <div class="info-cell"><span class="info-title">AES Token</span><span class="info-detail">${s.playbackSecret ? s.playbackSecret.slice(0,8) + '...' : '-'}</span></div>
+              <div class="info-cell"><span class="info-title">AES Token</span><span class="info-detail">${typeof s.playbackSecret === 'string' && s.playbackSecret ? s.playbackSecret.slice(0,8) + '...' : '-'}</span></div>
             </div>
             <div class="link-group">
               <div class="copy-box">
                 <span class="copy-tag pub">PUB</span>
                 <span class="copy-url" title="${publishUrl}">${pubDisplay}</span>
-                <button class="btn-copy" onclick="copyText('${publishUrl}', this)" ${publishUrl ? '' : 'disabled'}>Copy</button>
+                <button class="btn-copy" aria-label="Copy publish URL for ${safeName}" onclick="copyText('${publishUrl}', this)" ${publishUrl ? '' : 'disabled'}>Copy</button>
               </div>
               <div class="copy-box">
                 <span class="copy-tag play">OBS</span>
                 <span class="copy-url" title="${playUrl}">${playDisplay}</span>
-                <button class="btn-copy" onclick="copyText('${playUrl}', this)" ${playUrl ? '' : 'disabled'}>Copy</button>
+                <button class="btn-copy" aria-label="Copy playback URL for ${safeName}" onclick="copyText('${playUrl}', this)" ${playUrl ? '' : 'disabled'}>Copy</button>
               </div>
               <div class="copy-box">
                 <span class="copy-tag stats">STATS</span>
                 <span class="copy-url" title="${statsUrl}">${statsUrl}</span>
-                <button class="btn-copy" onclick="copyText('${statsUrl}', this)">Copy</button>
+                <button class="btn-copy" aria-label="Copy stats URL for ${safeName}" onclick="copyText('${statsUrl}', this)">Copy</button>
               </div>
             </div>
           </div>
@@ -1662,6 +1736,21 @@
     function closeModal() { document.getElementById('addModal').classList.remove('open'); document.getElementById('streamName').value = ''; document.getElementById('pubUser').value = ''; document.getElementById('pubPass').value = ''; }
     document.getElementById('addModal').addEventListener('click', (e) => { if (e.target === document.getElementById('addModal')) closeModal(); });
 
+    // Escape dismisses whichever dialog is open. Native buttons already handle
+    // Enter/Space themselves, so nothing else is intercepted here.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' && e.key !== 'Esc') return;
+      if (document.getElementById('editModal').classList.contains('open')) {
+        closeEditModal();
+        e.preventDefault();
+        return;
+      }
+      if (document.getElementById('addModal').classList.contains('open')) {
+        closeModal();
+        e.preventDefault();
+      }
+    });
+
     let pollInterval = null;
 
     // ---------------------------------------------------------------
@@ -1684,16 +1773,15 @@
 
       document.title = name && tagline ? `${name} ${tagline}` : (name || 'RIST Multi Receiver');
 
-      // Accent is operator-supplied, so it is written as a CSS variable rather
-      // than into a style attribute of a specific element.
+      // Accent is operator-supplied. It is written as a CSS variable, never as
+      // an inline color on an element, and it only drives the dark theme: the
+      // same hex that reads well on charcoal fails on a white surface
+      // (#34d399 on #fbfcfa is 1.9:1), so light mode keeps the verified theme
+      // accent instead of guessing a derived shade.
       const accent = typeof cfg.accent === 'string' ? cfg.accent : '';
       const root = document.documentElement;
       if (/^#[0-9a-f]{6}$/i.test(accent)) {
-        root.style.setProperty('--accent', accent);
-        if (window.CSS && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red, blue)')) {
-          root.style.setProperty('--accent-dim', `color-mix(in srgb, ${accent} 18%, var(--surface))`);
-          root.style.setProperty('--accent-on-dim', `color-mix(in srgb, ${accent} 78%, var(--text))`);
-        }
+        root.style.setProperty('--brand-accent', accent);
       }
 
       // Assets: try to decode before assigning so a missing file keeps the

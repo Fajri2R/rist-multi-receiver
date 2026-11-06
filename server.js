@@ -393,18 +393,33 @@ function resolveHostIp() {
 // DNS-only (unproxied) record pointing at this server's public IP, because
 // Cloudflare's HTTP proxy does not carry UDP.
 const PUBLIC_HOST = (process.env.RIST_PUBLIC_HOST || '').trim();
-let publicHostCheck = { at: 0, ok: false };
+let publicHostCheck = { at: 0, publicIp: '', ok: false };
 
 function verifyPublicHost(publicIp) {
     if (!PUBLIC_HOST || !publicIp) return Promise.resolve(false);
-    if (publicHostCheck.at && Date.now() - publicHostCheck.at < 300000) {
+    // Cache is keyed to the IP that was actually checked. A VPS address change
+    // must invalidate an old positive verdict immediately.
+    if (publicHostCheck.publicIp === publicIp
+        && publicHostCheck.at
+        && Date.now() - publicHostCheck.at < 300000) {
         return Promise.resolve(publicHostCheck.ok);
     }
     return new Promise((resolve) => {
-        dns.resolve4(PUBLIC_HOST, (err, addrs) => {
-            const ok = !err && Array.isArray(addrs) && addrs.indexOf(publicIp) !== -1;
-            publicHostCheck = { at: Date.now(), ok };
+        let settled = false;
+        const finish = (ok, cache) => {
+            if (settled) return;
+            settled = true;
+            // Cache successful/authoritative answers. A timeout is transient and
+            // must not poison the verdict for five minutes.
+            if (cache) publicHostCheck = { at: Date.now(), publicIp, ok };
             resolve(ok);
+        };
+        const timer = setTimeout(() => finish(false, false), 2500);
+        timer.unref();
+        dns.resolve4(PUBLIC_HOST, (err, addrs) => {
+            clearTimeout(timer);
+            const ok = !err && Array.isArray(addrs) && addrs.includes(publicIp);
+            finish(ok, !err || (err && (err.code === 'ENOTFOUND' || err.code === 'ENODATA')));
         });
     });
 }
